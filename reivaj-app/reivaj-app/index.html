@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Servicios Reivaj</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#0e7603">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Reivaj">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--line:#e4e0d6;--tx:#1b1a17;--mu:#77736a;--ac:#e0a100;--acx:#1a1300;--ok:#168a5a;--bad:#d63a37;--warn:#d9740f;--hl:#fff8e3;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e0e0f;--card:#18181a;--line:#2a2a2d;--tx:#f2f0ea;--mu:#8d8b86;--ac:#f0b323;--ok:#3ecf8e;--bad:#ef5350;--warn:#f08a23;--hl:#241d08}}
+:root[data-theme="dark"]{--bg:#0e0e0f;--card:#18181a;--line:#2a2a2d;--tx:#f2f0ea;--mu:#8d8b86;--ac:#f0b323;--ok:#3ecf8e;--bad:#ef5350;--warn:#f08a23;--hl:#241d08}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font:400 14px/1.4 Sora,system-ui,-apple-system,"Segoe UI",sans-serif}
+#app{max-width:480px;height:100%;margin:0 auto;display:flex;flex-direction:column;position:relative}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 4px}
+header b{font-size:15px;letter-spacing:.2px}
+header span{color:var(--ac)}
+.ib{background:var(--card);border:1px solid var(--line);color:var(--tx);width:34px;height:34px;border-radius:50%;cursor:pointer;font:inherit;margin-left:6px}
+#main{flex:1;overflow-y:auto;padding:0 16px 16px}
+h1{font-size:28px;margin:10px 0 0;font-weight:700;letter-spacing:-.5px}
+.sub{color:var(--mu);margin:2px 0 14px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);background:var(--card);border-radius:14px;margin-bottom:12px}
+.stats div{padding:10px 4px;text-align:center;border-right:1px solid var(--line)}
+.stats div:last-child{border:0}
+.stats b{display:block;font-size:22px}
+.stats small{color:var(--mu);font-size:10px;line-height:1.2;display:block}
+input,select{width:100%;background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:12px;padding:11px 12px;font:inherit;margin-bottom:10px}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px}
+.chip{flex:none;background:transparent;color:var(--tx);border:1px solid var(--line);border-radius:20px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer}
+.chip.on{border-color:var(--tx);background:var(--card);font-weight:600}
+.chip b{margin-left:4px}
+.row{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:8px}
+.bd{flex:none;width:44px;height:48px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:18px;line-height:1;color:#fff}
+.bd small{font-size:9px;font-weight:400;margin-top:2px}
+.info{flex:1;min-width:0}
+.info b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.info span{color:var(--mu);font-size:12px;display:block}
+.act{display:flex;gap:6px}
+.act a,.act button{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--ok);display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;font:inherit;font-size:16px}
+.act button{color:var(--tx)}
+.big{width:100%;background:var(--ac);color:var(--acx);border:0;border-radius:12px;padding:13px;font:inherit;font-weight:700;cursor:pointer;margin-bottom:8px}
+.big[disabled]{opacity:.55}
+.btn{background:var(--ac);color:var(--acx);border:0;border-radius:10px;padding:8px 12px;font:inherit;font-weight:600;font-size:12px;cursor:pointer}
+.tag{font-size:11px;color:var(--ok);border:1px solid var(--ok);border-radius:8px;padding:2px 6px}
+.amt{font-weight:700;white-space:nowrap}
+.bar{height:6px;border-radius:3px;background:var(--line);margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ac)}
+.empty{text-align:center;color:var(--mu);padding:36px 12px}
+.empty b{display:block;color:var(--tx);margin-bottom:4px}
+label{display:block;color:var(--mu);font-size:12px;margin:4px 0 4px 2px}
+nav{display:flex;border-top:1px solid var(--line);background:var(--card)}
+nav button{flex:1;background:none;border:0;color:var(--mu);padding:9px 0 8px;font:inherit;font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button.on{color:var(--ac);font-weight:600}
+nav svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.lg{width:34px;height:34px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px;position:relative;overflow:hidden;flex:none;letter-spacing:-.3px}.lg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#fff}
+#lock{position:absolute;inset:0;background:var(--bg);z-index:6;padding:90px 24px;text-align:center}#lock[hidden]{display:none}#lock img{width:120px;height:120px;border-radius:26px;margin-bottom:14px}#lock .big{margin-top:18px}#lock .lnk{background:none;border:0;color:var(--mu);font:inherit;margin-top:18px;cursor:pointer;text-decoration:underline}
+img.bn{display:block;width:100%;height:auto;border-radius:16px;margin:0 0 18px}#lock img.bn{width:100%;height:auto;border-radius:16px;margin:0 0 18px}#login{position:absolute;inset:0;background:var(--bg);z-index:5;padding:40px 24px;overflow:auto}#login[hidden]{display:none}
+#lst .sec{margin-bottom:6px}
+.shd{width:100%;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px;color:var(--tx);font:inherit;cursor:pointer;text-align:left}
+.shd b{flex:1}.shd span{color:var(--mu);font-size:12px}.shd i{font-style:normal;color:var(--mu);width:14px;text-align:center}
+#sheet{position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:6;display:flex;align-items:flex-end}#sheet[hidden]{display:none}
+.pane{background:var(--bg);width:100%;border-radius:18px 18px 0 0;padding:16px 16px 20px;max-height:92%;overflow:auto}
+.info[data-a]{cursor:pointer}
+#toast{z-index:9;position:absolute;left:16px;right:16px;bottom:74px;background:var(--tx);color:var(--bg);padding:11px 14px;border-radius:12px;opacity:0;pointer-events:none;transition:opacity .2s;font-size:13px;text-align:center}
+#toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style></head>
+<body><div id="app">
+<header><b style="display:flex;align-items:center;gap:10px"><img src="icons/icon-192.png" alt="" width="34" height="34" style="border-radius:9px">Servicios <span>Reivaj</span></b><div><button class="ib" data-a="theme" title="Cambiar tema" aria-label="Cambiar tema">◐</button><button class="ib" data-a="reset" title="Actualizar datos" aria-label="Actualizar datos">↺</button><button class="ib" data-a="bio" title="Huella" aria-label="Activar o desactivar huella">☝</button><button class="ib" data-a="logout" title="Cerrar sesión" aria-label="Cerrar sesión">⎋</button></div></header>
+<div id="lock" hidden><img class="bn" src="icons/banner.jpg" alt="Servicios Reivaj"><h1>Servicios Reivaj</h1><p class="sub">Desbloquea con tu huella</p><button class="big" data-a="unlock">Desbloquear</button><br><button class="lnk" data-a="usepw">Usar contraseña</button></div>
+<div id="login" hidden><img class="bn" src="icons/banner.jpg" alt="Servicios Reivaj"><h1>Entrar</h1><p class="sub">Inicia sesión con tu usuario de Supabase</p><label for="le">Correo</label><input id="le" type="email" autocomplete="username"><label for="lp">Contraseña</label><input id="lp" type="password" autocomplete="current-password"><button class="big" data-a="login">Entrar</button></div>
+<div id="main"></div><div id="sheet" hidden></div><div id="toast"></div>
+<nav id="nav"></nav></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const $=s=>document.querySelector(s),T=new Date();T.setHours(0,0,0,0);
+const DAY=864e5,ts=n=>T.getTime()+n*DAY,dd=t=>Math.round((t-T.getTime())/DAY);
+const p2=n=>String(n).padStart(2,'0'),fd=t=>{const d=new Date(t);return p2(d.getDate())+'/'+p2(d.getMonth()+1)};
+const gs=n=>'Gs. '+Number(n).toLocaleString('es-PY');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const tok=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z ]/g,' ').split(/\s+/).filter(w=>w.length>2);
+const SVC=['Crunchyroll', 'Disney+', 'Disney+ (cuenta)', 'MagisTv', 'Max', 'Max (cuenta)', 'Netflix', 'Netflix Privado', 'Paramount', 'Paramount (cuenta)', 'Prime Video (cuenta)', 'Spotify', 'YouTube Premium','Tigo Sports'];
+const seed=()=>({id:30,
+clients:[['Ana Giménez','595981100001','Disney Premium',15000,0],['Carlos Duarte','595982100002','Tigo Sports',70000,0],['Lucía Benítez','595983100003','Netflix-Premium',30000,0],['Marcos Ríos','595984100004','Spotify',25000,3],['Sofía Acosta','595985100005','HBO Max',25000,9],['Julián Vera','595986100006','Netflix',30000,-2],['Mabel Cáceres','595971100007','Disney Premium',15000,-5],['Diego Fleitas','595972100008','Netflix-Premium',30000,2],['Rocío Salinas','595973100009','HBO Max',25000,6],['Hugo Samaniego','595974100010','Spotify',25000,15],['Elena Ortiz','595975100011','Tigo Sports',70000,1],['Pablo Insfrán','595976100012','Netflix',30000,22]].map((a,i)=>({id:i+1,n:a[0],tel:a[1],svc:a[2],p:a[3],due:ts(a[4]),on:1})).concat([{id:20,n:'Nadia Pereira',tel:'595977100013',svc:'Spotify',p:25000,due:ts(-40),on:0}]),
+pays:[],
+accts:[{m:'disney.01@correo.com',svc:'Disney Premium',cap:4,used:3},{m:'netflix.02@correo.com',svc:'Netflix-Premium',cap:5,used:2},{m:'hbo.01@correo.com',svc:'HBO Max',cap:3,used:2},{m:'spotify.03@correo.com',svc:'Spotify',cap:6,used:0},{m:'tigo.01@correo.com',svc:'Tigo Sports',cap:2,used:2}]});
+const CFG={url:'https://pecfmxzvkyxrftyjorxz.supabase.co',key:'sb_publishable_L1Zgo3HA0ji-Xeg6pogrjg_LwTtZg-p'};
+const sb=window.supabase.createClient(CFG.url.startsWith('http')?CFG.url:'https://x.supabase.co',CFG.key);
+let S={clients:[],pays:[],accts:[]};
+const save=()=>{};
+const isoD=t=>{const d=new Date(t);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
+const dbErr=r=>{if(r&&r.error)toast('Error: '+r.error.message)};
+async function pull(){const [c,p,a,k]=await Promise.all([sb.from('clientes').select('*'),sb.from('pagos').select('*').order('id',{ascending:false}),sb.from('cuentas').select('*'),sb.from('credenciales').select('cuenta_id,clave')]);
+S.cred={};(k.data||[]).forEach(r=>{S.cred[r.cuenta_id]=r.clave||''});
+const e=c.error||p.error||a.error;if(e){toast('Error: '+e.message);return}
+S.clients=c.data.map(r=>({id:r.id,n:r.nombre,tel:r.telefono,svc:r.servicio,p:r.precio,due:new Date(r.vence+'T00:00:00').getTime(),on:r.activo?1:0,mail:(r.correo||'').toLowerCase(),note:r.nota||'',perfil:r.perfil||'',pin:r.pin||''}));
+S.pays=p.data.map(r=>({id:r.id,n:r.remitente,amt:r.monto,bank:r.banco||'',t:r.hora||'',used:r.cliente_id||0}));
+S.accts=a.data.map(r=>({id:r.id,m:r.correo,svc:r.servicio,cap:r.capacidad,used:r.ocupados})).sort((x,y)=>x.svc.localeCompare(y.svc)||x.m.localeCompare(y.m));render()}
+async function edit(id){const c=S.clients.find(x=>x.id==id);if(!c)return;
+const ac=c.mail?S.accts.find(x=>String(x.m).trim().toLowerCase()==c.mail&&x.svc==c.svc):null;let cl='';
+if(ac){const r=await sb.from('credenciales').select('clave').eq('cuenta_id',ac.id).maybeSingle();cl=(r.data&&r.data.clave)||''}
+const fl=(id2,lab,val,ro,extraAttr)=>`<label for="${id2}">${lab}</label><div style="display:flex;gap:8px"><input id="${id2}" value="${esc(val)}" ${ro?'readonly':''} ${extraAttr||''} autocomplete="off"><button class="chip" data-a="copy" data-t="${id2}" style="margin-bottom:10px">Copiar</button></div>`;
+const wad=c.tel&&(c.mail||cl)?`<a class="chip" style="display:block;text-align:center;text-decoration:none;color:var(--ok);margin:2px 0 4px" target="_blank" rel="noopener" href="https://api.whatsapp.com/send?phone=${c.tel.replace(/\D/g,'')}&text=${encodeURIComponent(msgD(c,cl))}">Enviar datos por WhatsApp</a>`:'';
+$('#sheet').innerHTML=`<div class="pane"><h1 style="font-size:22px">Editar cliente</h1><p class="sub">${esc(c.n)}</p>
+<div style="border:1px solid var(--line);border-radius:14px;padding:2px 12px 10px;margin-bottom:12px"><p class="sub" style="margin:10px 0 0;font-size:12px;letter-spacing:.5px">DATOS DE LA CUENTA</p>
+${c.mail?fl('dc','Correo',c.mail,true):'<p class="sub" style="font-size:13px">Sin correo cargado: se llena al sincronizar la hoja.</p>'}
+${cl?`<label for="ak">Clave</label><div style="display:flex;gap:8px"><input id="ak" type="password" value="${esc(cl)}" readonly><button class="chip" data-a="show" style="margin-bottom:10px">Ver</button><button class="chip" data-a="copy" data-t="ak" style="margin-bottom:10px">Copiar</button></div>`:(c.mail?'<p class="sub" style="font-size:13px">Esta cuenta aún no tiene clave guardada.</p>':'')}
+${fl('epf','Usuario / perfil',c.perfil||'',false)}
+${fl('epn','PIN',c.pin||'',false,'inputmode="numeric"')}
+${wad}</div>
+<label for="en">Nombre</label><input id="en" value="${esc(c.n)}">
+<label for="et">WhatsApp (con código de país)</label><input id="et" inputmode="tel" value="${esc(c.tel)}">
+<label for="es">Servicio o combo</label><input id="es" list="svl" value="${esc(c.svc)}" autocomplete="off"><datalist id="svl">${SVC.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+<label for="ep">Precio que paga (Gs.)</label><input id="ep" type="number" inputmode="numeric" value="${c.p}">
+<label for="ed">Vence</label><input id="ed" type="date" value="${isoD(c.due)}">
+<label for="eno">Nota (ej: en qué cuenta de Netflix está)</label><input id="eno" value="${esc(c.note||'')}" autocomplete="off">
+<label style="display:flex;gap:8px;align-items:center;color:var(--tx)"><input type="checkbox" id="ea" ${c.on?'checked':''} style="width:auto;margin:0"> Cliente activo</label>
+<button class="big" style="margin-top:12px" data-a="esave" data-id="${id}">Guardar cambios</button>
+<button class="chip" style="width:100%;padding:11px" data-a="eclose">Cancelar</button></div>`;$('#sheet').hidden=false}
+async function esave(id){const v=i=>$('#'+i).value.trim();if(!v('en')||!v('ed')){toast('Completa nombre y fecha');return}
+const r=await sb.from('clientes').update({nombre:v('en'),telefono:v('et').replace(/\D/g,''),servicio:v('es')||'Sin servicio',precio:+v('ep')||0,vence:v('ed'),nota:v('eno')||null,perfil:v('epf')||null,pin:v('epn')||null,activo:$('#ea').checked}).eq('id',id);
+if(r.error){toast('Error: '+r.error.message);return}$('#sheet').hidden=true;toast('Cambios guardados');pull()}
+function usersOf(a){const us=S.clients.filter(c=>c.mail&&c.mail==String(a.m).trim().toLowerCase()&&c.svc==a.svc).sort((x,y)=>x.due-y.due);
+const nk=us.filter(c=>c.on&&c.tel).length;
+const h=`<h2 style="font-size:15px;margin:16px 0 8px">Usuarios de esta cuenta <small style="color:var(--mu)">(${us.length})</small></h2>`+(nk?`<button class="chip" data-a="kall" data-id="${a.id}" style="width:100%;margin-bottom:10px;padding:10px">🔐 Avisar cambio de clave a los ${nk} usuarios</button>`:'');
+if(!us.length)return h+'<div class="empty" style="padding:10px 0"><span style="font-size:13px">Todavía no hay usuarios cargados. Se llenan solos al sincronizar la hoja.</span></div>';
+return h+us.map(c=>{const d=dd(c.due),y=new Date(c.due).getFullYear();return `<div class="row"><div class="bd" style="background:${c.on?col(d):'var(--mu)'}">${c.on?d:'—'}<small>${c.on?'días':'baja'}</small></div><div class="info"><b>${esc(c.n)}</b><span><a href="tel:+${c.tel.replace(/\D/g,'')}" style="color:inherit">${esc(c.tel||'sin número')}</a></span><span>Vence ${fd(c.due)}/${y}</span>${extra(c)}</div><div class="act">${keyBtn(c)}${c.tel?`<a href="${wa(c)}" target="_blank" rel="noopener" aria-label="WhatsApp a ${esc(c.n)}">${WAI}</a>`:''}</div></div>`}).join('')}
+async function acct(id){kAcc=null;kIdx=0;const a=S.accts.find(x=>x.id==id)||{id:0,m:'',svc:SVC[0],cap:4,used:0};let cl='',nt='';
+if(a.id){const r=await sb.from('credenciales').select('clave,nota').eq('cuenta_id',a.id).maybeSingle();if(r.error){toast('Error: '+r.error.message);return}cl=(r.data&&r.data.clave)||'';nt=(r.data&&r.data.nota)||''}
+$('#sheet').innerHTML=`<div class="pane"><h1 style="font-size:22px">${a.id?'Cuenta':'Nueva cuenta'}</h1><p class="sub">${esc(a.svc)}</p>
+<label for="ac">Correo o usuario</label><div style="display:flex;gap:8px"><input id="ac" value="${esc(a.m)}" autocomplete="off"><button class="chip" data-a="copy" data-t="ac" style="margin-bottom:10px">Copiar</button></div>
+<label for="ak">Contraseña</label><div style="display:flex;gap:8px"><input id="ak" type="password" value="${esc(cl)}" autocomplete="off"><button class="chip" data-a="show" style="margin-bottom:10px">Ver</button><button class="chip" data-a="copy" data-t="ak" style="margin-bottom:10px">Copiar</button></div>
+<label for="as">Tipo de cuenta</label><select id="as">${a.id?'':'<option value="" selected>— Elige el servicio —</option>'}${[...new Set([...SVC,a.svc])].filter(Boolean).map(x=>`<option value="${esc(x)}" ${a.id&&x==a.svc?'selected':''}>${esc(x)}</option>`).join('')}<option value="__otro">Otro (escribir)…</option></select><input id="as2" hidden placeholder="Escribe el nombre del servicio" autocomplete="off">
+<label for="ap">Perfiles totales</label><input id="ap" type="number" inputmode="numeric" value="${a.cap}">
+<label for="au">Perfiles ocupados</label><input id="au" type="number" inputmode="numeric" value="${a.used}">
+<label for="an">Nota (PIN, proveedor, etc.)</label><input id="an" value="${esc(nt)}" autocomplete="off">${a.id?usersOf(a):''}
+<button class="big" style="margin-top:12px" data-a="asave" data-id="${a.id}">Guardar cambios</button>
+<button class="chip" style="width:100%;padding:11px" data-a="eclose">Cerrar</button></div>`;$('#sheet').hidden=false}
+async function asave(id){const v=i=>$('#'+i).value.trim();const svc=v('as')=='__otro'?v('as2'):v('as');if(!v('ac')||!svc){toast('Completa correo y servicio');return}
+const f={correo:v('ac'),servicio:svc,capacidad:+v('ap')||0,ocupados:+v('au')||0};
+let cid=+id;if(cid){const r=await sb.from('cuentas').update(f).eq('id',cid);if(r.error){toast('Error: '+r.error.message);return}}
+else{const r=await sb.from('cuentas').insert(f).select('id').single();if(r.error){toast('Error: '+r.error.message);return}cid=r.data.id}
+const k=await sb.from('credenciales').upsert({cuenta_id:cid,clave:v('ak'),nota:v('an'),actualizado:new Date().toISOString()});
+if(k.error){toast('Error: '+k.error.message);return}$('#sheet').hidden=true;toast('Cuenta guardada');pull()}
+async function copyF(i){const t=$('#'+i).value;try{await navigator.clipboard.writeText(t);toast('Copiado')}catch(e){const el=$('#'+i),ty=el.type;el.type='text';el.select();document.execCommand('copy');el.type=ty;toast('Copiado')}}
+async function doLogin(){const r=await sb.auth.signInWithPassword({email:$('#le').value.trim(),password:$('#lp').value});if(r.error){toast('No se pudo entrar: '+r.error.message);return}$('#login').hidden=true;if(window.PublicKeyCredential&&!bioId()&&confirm('¿Activar la huella para entrar más rápido la próxima vez?'))await bioOn();pull()}
+let openS=new Set(),tab='ven',f='h',cf='on',q='',loading=false;
+const rg={v:d=>d<0,h:d=>d==0,a:d=>d>=1&&d<=3,b:d=>d>=4&&d<=7};
+const act=()=>S.clients.filter(c=>c.on);
+const cnt=()=>{const o={};for(const k in rg)o[k]=act().filter(c=>rg[k](dd(c.due))).length;return o};
+const hit=c=>!q||(c.n+' '+c.tel+' '+c.svc).toLowerCase().includes(q.toLowerCase());
+const col=d=>d<0?'var(--bad)':d==0?'var(--warn)':d<=7?'#b8860b':'var(--ok)';
+const svcName=x=>String(x).replace(/\s*\(cuenta\)/i,'').replace(/\+/g,' PLUS').replace(/\s+/g,' ').trim().toUpperCase();
+const msg=c=>{const d=dd(c.due),h=c.n.trim().split(/\s+/)[0],s=svcName(c.svc);
+if(d<=0)return `🚨 Hola, ${h}.\nSu cuenta ${s} venció, confirmar con la renovación de su servicio.\nEnviar captura de pantalla de pago realizado.\nMuchas gracias🫱🏼‍🫲🏼`;
+const l=d==1?`Le queda 1 día restante de su membresía en ${s}`:`Le quedan ${d} días restantes de su membresía en ${s}`;
+return `MENSAJE RECORDATORIO 🚨\n\nHola, ${h}.\n${l}`};
+const msgC=c=>`Confirmación de cancelación\nHola, ${c.n.trim().split(/\s+/)[0]}:\nComo no hemos recibido el pago, cancelamos tu membresía. Entra en efecto desde hoy.\nObviamente, nos gustaría que regresaras. Si cambias de opinión, tan solo reinicia la membresía pagando la mensualidad y vuelve a disfrutar los mejores contenidos sin interrupciones.`;
+const waC=c=>`https://api.whatsapp.com/send?phone=${c.tel.replace(/\D/g,'')}&text=${encodeURIComponent(msgC(c))}`;
+const cancelBtn=(c,d)=>d<0?`<a href="${waC(c)}" target="_blank" rel="noopener" title="Avisar cancelación" aria-label="Avisar cancelación a ${esc(c.n)}" style="color:var(--bad)">✕</a>`:'';
+const wa=c=>`https://api.whatsapp.com/send?phone=${c.tel.replace(/\D/g,'')}&text=${encodeURIComponent(msg(c))}`;
+const WAI='<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 5 5.1-1.3A10 10 0 1 0 12 2zm5.2 13.9c-.2.6-1.300 1.200-1.800 1.200-.5.1-1 .2-3.300-.7-2.800-1.200-4.600-4-4.700-4.200-.1-.2-1.100-1.500-1.100-2.800s.7-2 1-2.300c.2-.3.500-.3.700-.3h.5c.2 0 .4 0 .6.500l.8 2c.1.2.1.4 0 .6l-.4.600c-.1.200-.3.300-.1.600.2.300.8 1.300 1.700 2.100 1.100 1 2.100 1.300 2.400 1.400.3.100.5.100.7-.1l.9-1.100c.2-.3.400-.2.700-.1l1.900.9c.3.1.5.200.5.3.1.100.1.600-.1 1.100z"/></svg>';
+function st(n,l,c){return `<div><b style="color:${c}">${n}</b><small>${l}</small></div>`}
+function renew(id){const c=S.clients.find(x=>x.id==id);c.due=Math.max(c.due,T.getTime())+30*DAY;toast(`${c.n}: renovado hasta el ${fd(c.due)}`);sb.from('clientes').update({vence:isoD(c.due)}).eq('id',c.id).then(dbErr)}
+function sug(p){const t=new Set(tok(p.n));let best=null,bs=0;act().forEach(c=>{const s=tok(c.n).filter(w=>t.has(w)).length;if(s>bs){bs=s;best=c}});return bs>=2?best:null}
+function use(pid,cid){const p=S.pays.find(x=>x.id==pid);renew(cid);p.used=+cid;sb.from('pagos').update({cliente_id:+cid}).eq('id',p.id).then(dbErr);render()}
+function load(){if(loading)return;loading=true;render();setTimeout(()=>{loading=false;
+const nw=[['Ana María Gimenez Rojas',15000,'Ueno Bank'],['Carlos Duarte Vera',70000,'Banco Continental'],['Lucía Benítez Ayala',30000,'Banco Itaú'],['Roberto Pérez Fleitas',25000,'Sudameris']].filter(x=>!S.pays.some(p=>p.n==x[0]));
+const rows=nw.map((x,i)=>{const d=new Date(Date.now()-i*41*6e4);return {remitente:x[0],monto:x[1],banco:x[2],hora:p2(d.getHours())+':'+p2(d.getMinutes())}});
+(rows.length?sb.from('pagos').insert(rows):Promise.resolve({})).then(r=>{if(r.error)dbErr(r);else toast(rows.length?rows.length+' transferencias nuevas':'No hay transferencias nuevas');pull()})},1300)}
+function add(){const n=$('#fn').value.trim(),t=$('#ft').value.trim();if(!n||!t){toast('Completa nombre y WhatsApp');return}
+const rows=[...document.querySelectorAll('.svb')].map(b=>({s:b.querySelector('.sv-s').value.trim()||'Sin servicio',p:+b.querySelector('.sv-p').value||0,d:+b.querySelector('.sv-d').value||30,n:b.querySelector('.sv-n').value.trim()}));
+sb.from('clientes').insert(rows.map(x=>({nombre:n,telefono:t,servicio:x.s,precio:x.p,vence:isoD(ts(x.d)),nota:x.n||null,activo:true}))).then(r=>{if(r.error){dbErr(r);return}tab='cli';cf='on';q='';toast(rows.length>1?rows.length+' servicios guardados':'Cliente guardado');pull()})}
+const LOGOS=[['netflix','N','#e50914'],['max','max','#002be7'],['hbo','max','#002be7'],['prime','prime','#00a8e1'],['disney','D+','#113ccf'],['paramount','P','#0064ff'],['youtube','▶','#ff0000'],['spotify','S','#1db954'],['crunchy','C','#f47521'],['magis','M','#f26b21'],['tigo','T','#00377b']];
+function logo(n){const l=String(n).toLowerCase(),m=LOGOS.find(x=>l.includes(x[0]));if(!m)return `<span class="lg" style="background:var(--mu)">${esc(String(n).slice(0,1).toUpperCase())}</span>`;return `<span class="lg" style="background:${m[2]}">${m[1]}<img src="icons/svc/${m[0]}.png" alt="" onerror="this.remove()"></span>`}
+const B64=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const UB=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
+const bioId=()=>{try{return localStorage.getItem('bio')}catch(e){return null}};
+async function bioOn(){if(!window.PublicKeyCredential){toast('Este aparato no permite huella aquí');return}
+try{const c=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:'Servicios Reivaj'},user:{id:crypto.getRandomValues(new Uint8Array(16)),name:'reivaj',displayName:'Reivaj'},pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'discouraged'},timeout:60000}});localStorage.setItem('bio',B64(c.rawId));toast('Huella activada')}catch(e){toast('No se pudo activar la huella')}}
+function bioOff(){try{localStorage.removeItem('bio')}catch(e){}toast('Huella desactivada')}
+async function unlock(){const id=bioId();if(!id){$('#lock').hidden=true;pull();return}
+try{await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{type:'public-key',id:UB(id)}],userVerification:'required',timeout:60000}});$('#lock').hidden=true;pull()}catch(e){toast('No se pudo verificar la huella')}}
+let hiddenAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden){hiddenAt=Date.now()}else if(bioId()&&hiddenAt&&Date.now()-hiddenAt>60000&&$('#login').hidden){$('#lock').hidden=false;unlock()}});
+const blk=first=>`<div class="svb" style="border:1px solid var(--line);border-radius:14px;padding:4px 12px 12px;margin:10px 0 4px"><label>Servicio o combo</label><input class="sv-s" list="svl" aria-label="Servicio o combo" placeholder="Ej: Netflix + Disney+" autocomplete="off"><label>Precio (Gs.)</label><input class="sv-p" aria-label="Precio" type="number" inputmode="numeric" value="30000"><label>Vence en (días)</label><input class="sv-d" aria-label="Vence en días" type="number" inputmode="numeric" value="30"><label>Nota (opcional)</label><input class="sv-n" aria-label="Nota" placeholder="Ej: en qué cuenta de Netflix está" autocomplete="off">${first?'':'<button class="chip" data-a="rmsv" style="margin-top:8px;color:var(--bad)">Quitar este servicio</button>'}</div>`;
+const MESES_ES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const msgD=(c,clave)=>{const d=new Date(c.due);return `*_✅ ${svcName(c.svc)}_*\n\n*📧 Correo:* ${c.mail||''}\n*🔑 Contraseña:* ${clave||''}\n\n*☑️ Perfil:* ${c.perfil||''}\n*Pin:* ${c.pin||''}\n*📍 Vence:* ${d.getDate()} ${MESES_ES[d.getMonth()]}`};
+const acctOf=c=>c.mail?S.accts.find(x=>String(x.m).trim().toLowerCase()==c.mail&&x.svc==c.svc):null;
+const claveDe=c=>{const a=acctOf(c);return a?(S.cred&&S.cred[a.id])||'':''};
+const wl=(c,t)=>`https://api.whatsapp.com/send?phone=${c.tel.replace(/\D/g,'')}&text=${encodeURIComponent(t)}`;
+const waD=c=>wl(c,msgD(c,claveDe(c)));
+const msgK=(c,clave)=>{const d=new Date(c.due);return `*_🔐 CAMBIO DE CONTRASEÑA · ${svcName(c.svc)}_*\n\nHola, ${c.n.trim().split(/\s+/)[0]}. Se cambió la contraseña de tu cuenta. Estos son tus datos actualizados:\n\n*📧 Correo:* ${c.mail||''}\n*🔑 Nueva contraseña:* ${clave||''}\n\n*☑️ Perfil:* ${c.perfil||''}\n*Pin:* ${c.pin||''}\n*📍 Vence:* ${d.getDate()} ${MESES_ES[d.getMonth()]}`};
+const keyBtn=c=>c.mail&&c.tel?`<a href="${waD(c)}" target="_blank" rel="noopener" title="Enviar datos de la cuenta" aria-label="Enviar datos a ${esc(c.n)}" style="color:var(--ac)">🔑</a>`:'';
+let kAcc=null,kIdx=0;
+const extra=c=>(c.perfil||c.pin?`<span>👤 ${esc(c.perfil||'')}${c.pin?(c.perfil?' · ':'')+'PIN '+esc(c.pin):''}</span>`:'')+(c.note?`<span>📝 ${esc(c.note)}</span>`:'');
+const L={
+ven(){const a=act().filter(c=>rg[f](dd(c.due))&&hit(c)).sort((x,y)=>x.due-y.due);
+return a.length?a.map(c=>{const d=dd(c.due);return `<div class="row"><div class="bd" style="background:${col(d)}">${Math.abs(d)}<small>${d==0?'hoy':d<0?'atraso':'días'}</small></div><div class="info" data-a="edit" data-id="${c.id}"><b>${esc(c.n)}</b><span>${esc(c.svc)}</span><span>Vence ${fd(c.due)} · ${gs(c.p)}</span>${extra(c)}</div><div class="act">${cancelBtn(c,d)}${keyBtn(c)}<a href="${wa(c)}" target="_blank" rel="noopener" title="Avisar por WhatsApp" aria-label="Avisar a ${esc(c.n)} por WhatsApp">${WAI}</a><button data-a="renew" data-id="${c.id}" title="Renovar 30 días" aria-label="Renovar a ${esc(c.n)}">↻</button></div></div>`}).join(''):'<div class="empty"><b>Nada en este rango</b>Prueba con otro filtro.</div>'},
+cli(){const a=S.clients.filter(c=>(cf=='all'||(cf=='on'?c.on:!c.on))&&hit(c)).sort((x,y)=>x.due-y.due);
+return a.length?a.map(c=>{const d=dd(c.due);return `<div class="row"><div class="bd" style="background:${c.on?col(d):'var(--mu)'}">${c.on?d:'—'}<small>${c.on?'días':'baja'}</small></div><div class="info" data-a="edit" data-id="${c.id}"><b>${esc(c.n)}</b><span>${esc(c.svc)}</span><span>Vence ${fd(c.due)} · ${gs(c.p)}</span>${extra(c)}</div><div class="act">${cancelBtn(c,d)}${keyBtn(c)}<a href="${wa(c)}" target="_blank" rel="noopener" aria-label="WhatsApp a ${esc(c.n)}">${WAI}</a></div></div>`}).join(''):'<div class="empty"><b>Sin resultados</b>Cambia la búsqueda o el filtro.</div>'},
+cue(){const a=S.accts.filter(x=>!q||(x.m+' '+x.svc).toLowerCase().includes(q.toLowerCase()));
+if(!a.length)return '<div class="empty"><b>Sin cuentas</b>Agrega una con el botón de arriba.</div>';
+const row=a=>`<div class="row"><div class="info" data-a="acct" data-id="${a.id}"><b>${esc(a.m)}</b><span>${a.used} de ${a.cap} perfiles ocupados</span><div class="bar"><i style="width:${a.cap?Math.min(100,a.used/a.cap*100):0}%"></i></div></div><span class="amt" style="color:${a.cap-a.used>0?'var(--ok)':'var(--mu)'}">${a.cap-a.used} libres</span></div>`;
+const g={};a.forEach(x=>(g[x.svc]=g[x.svc]||[]).push(x));
+return Object.keys(g).sort((x,y)=>x.localeCompare(y)).map(k=>{const l=g[k],free=l.reduce((t,x)=>t+Math.max(0,x.cap-x.used),0),op=!!q||openS.has(k);
+return `<div class="sec"><button class="shd" data-a="sec" data-k="${esc(k)}" aria-expanded="${op}">${logo(k)}<b>${esc(k)}</b><span>${l.length} ${l.length==1?'cuenta':'cuentas'} · ${free} libres</span><i>${op?'▾':'▸'}</i></button>${op?l.map(row).join(''):''}</div>`}).join('')},
+pag(){if(!S.pays.length)return '<div class="empty"><b>Sin transferencias</b>Toca “Cargar transferencias” para traer las nuevas.</div>';
+return S.pays.filter(p=>!q||(p.n+p.bank).toLowerCase().includes(q.toLowerCase())).map(p=>{const s=p.used?null:sug(p);
+const r=p.used?`<span class="tag">Usada · ${esc((S.clients.find(c=>c.id==p.used)||{n:''}).n)}</span>`:s?`<button class="btn" data-a="use" data-id="${p.id}" data-c="${s.id}">Aplicar a ${esc(s.n.split(' ')[0])}</button>`:`<select data-a="pick" data-id="${p.id}" aria-label="Asignar a cliente"><option value="">Asignar a…</option>${act().map(c=>`<option value="${c.id}">${esc(c.n)}</option>`).join('')}</select>`;
+return `<div class="row"><div class="info"><b>${esc(p.n)}</b><span>${p.t} · ${esc(p.bank)}</span><div style="margin-top:6px">${r}</div></div><div class="amt">${gs(p.amt)}</div></div>`}).join('')}};
+const V={
+ven(){const c=cnt(),free=S.accts.reduce((s,a)=>s+a.cap-a.used,0),cl=S.accts.filter(a=>!a.used).length;
+return `<h1>Vencimientos</h1><p class="sub">${act().length} clientes activos</p><div class="stats">${st(c.h,'Vencen hoy','var(--warn)')}${st(c.v,'Vencidos','var(--bad)')}${st(free,'Disponibles','var(--ok)')}${st(cl,'Cuentas por cerrar','var(--mu)')}</div><input id="q" placeholder="Buscar por nombre, teléfono o servicio" value="${esc(q)}"><div class="chips">${[['v','Vencidos'],['h','Hoy'],['a','1 a 3 días'],['b','4 a 7 días']].map(([k,l])=>`<button class="chip ${f==k?'on':''}" data-a="f" data-k="${k}">${l}<b>${c[k]}</b></button>`).join('')}</div><div id="lst">${L.ven()}</div>`},
+cli(){return `<h1>Clientes</h1><p class="sub">${S.clients.length} en la base</p><input id="q" placeholder="Nombre, teléfono o servicio" value="${esc(q)}"><div class="chips">${[['on','Activos'],['all','Todos'],['off','De baja']].map(([k,l])=>`<button class="chip ${cf==k?'on':''}" data-a="cf" data-k="${k}">${l}</button>`).join('')}</div><div id="lst">${L.cli()}</div>`},
+pag(){const tot=S.pays.reduce((s,p)=>s+p.amt,0),un=S.pays.filter(p=>!p.used).length;
+return `<h1>Pagos</h1><p class="sub">Transferencias recibidas</p><div class="stats" style="grid-template-columns:repeat(3,1fr)">${st(tot.toLocaleString('es-PY'),'Total cargado','var(--tx)')}${st(S.pays.length,'Transferencias','var(--tx)')}${st(un,'Sin usar','var(--warn)')}</div><button class="big" data-a="load" ${loading?'disabled':''}>${loading?'Buscando en el correo…':'Cargar transferencias'}</button><input id="q" placeholder="Buscar por nombre o banco" value="${esc(q)}"><div id="lst">${L.pag()}</div>`},
+cue(){return `<h1>Cuentas</h1><p class="sub">Toca un servicio para ver sus cuentas</p><button class="big" data-a="acct" data-id="0">Agregar cuenta</button><input id="q" placeholder="Buscar por correo o servicio" value="${esc(q)}"><div id="lst">${L.cue()}</div>`},
+nue(){return `<h1>Nuevo cliente</h1><p class="sub">Registra una venta</p><label for="fn">Nombre</label><input id="fn" autocomplete="off"><label for="ft">WhatsApp (con código de país)</label><input id="ft" inputmode="tel" placeholder="595981123456"><datalist id="svl">${SVC.map(s=>`<option value="${esc(s)}">`).join('')}</datalist><div id="svs">${blk(true)}</div><button class="chip" data-a="addsv" style="margin:8px 0 12px">+ Agregar otro servicio</button><button class="big" data-a="save">Guardar cliente</button>`}};
+const NAV=[['ven','Vencen','<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'],['cli','Clientes','<circle cx="9" cy="8" r="3.5"/><path d="M2.500 20c.5-4 3-6 6.500-6s6 2 6.500 6M16 4.500a3.500 3.500 0 0 1 0 7M18 14c2 .7 3.200 2.600 3.500 6"/>'],['pag','Pagos','<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.500"/>'],['cue','Cuentas','<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/>'],['nue','Nuevo','<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>']];
+function render(){$('#main').innerHTML=V[tab]();$('#nav').innerHTML=NAV.map(n=>`<button class="${tab==n[0]?'on':''}" data-a="tab" data-k="${n[0]}"><svg viewBox="0 0 24 24">${n[2]}</svg>${n[1]}</button>`).join('')}
+let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2400)}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,id=b.dataset.id;
+if(a=='tab'){tab=b.dataset.k;q='';render()}
+else if(a=='f'){f=b.dataset.k;render()}
+else if(a=='cf'){cf=b.dataset.k;render()}
+else if(a=='renew'){renew(id);render()}
+else if(a=='load')load();
+else if(a=='use')use(id,b.dataset.c);
+else if(a=='save')add();
+else if(a=='login')doLogin();
+else if(a=='edit')edit(id);
+else if(a=='esave')esave(id);
+else if(a=='eclose')$('#sheet').hidden=true;
+else if(a=='sec'){const k=b.dataset.k;openS.has(k)?openS.delete(k):openS.add(k);$('#lst').innerHTML=L.cue()}
+else if(a=='acct')acct(id);
+else if(a=='kall'){const ac=S.accts.find(x=>x.id==id);if(!ac)return;const us=S.clients.filter(c=>c.on&&c.tel&&c.mail&&c.mail==String(ac.m).trim().toLowerCase()&&c.svc==ac.svc).sort((x,y)=>x.due-y.due);
+const clave=($('#ak')&&$('#ak').value)||'';if(!clave){toast('Esta cuenta no tiene clave guardada');return}
+if(!us.length)return;if(kAcc!=id){kAcc=id;kIdx=0}const c=us[kIdx%us.length];window.open(wl(c,msgK(c,clave)),'_blank');kIdx++;
+b.textContent=kIdx%us.length==0?`✅ Listo, se avisó a los ${us.length}. Tocar para repetir`:`🔐 Avisar al siguiente: ${us[kIdx%us.length].n.split(' ')[0]} (${kIdx+1} de ${us.length})`}
+else if(a=='asave')asave(id);
+else if(a=='copy')copyF(b.dataset.t);
+else if(a=='show'){const i=$('#ak');i.type=i.type=='password'?'text':'password';b.textContent=i.type=='password'?'Ver':'Ocultar'}
+else if(a=='theme'){const r=document.documentElement,d=r.dataset.theme||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');r.dataset.theme=d=='dark'?'light':'dark'}
+else if(a=='reset'){pull();toast('Datos actualizados')}
+else if(a=='addsv'){$('#svs').insertAdjacentHTML('beforeend',blk(false))}
+else if(a=='rmsv'){b.closest('.svb').remove()}
+else if(a=='bio'){bioId()?bioOff():bioOn()}
+else if(a=='unlock')unlock();
+else if(a=='usepw'){bioOff();sb.auth.signOut().then(()=>{$('#lock').hidden=true;$('#login').hidden=false})}
+else if(a=='logout'){if(bioId()){S.clients=[];S.accts=[];$('#lock').hidden=false;return}sb.auth.signOut().then(()=>{S.clients=[];S.accts=[];$('#lp').value='';$('#login').hidden=false})}});
+document.addEventListener('input',e=>{if(e.target.id=='q'){q=e.target.value;$('#lst').innerHTML=L[tab]()}});
+document.addEventListener('change',e=>{if(e.target.id=='as'){const o=$('#as2');o.hidden=e.target.value!='__otro';if(!o.hidden)o.focus()}
+if(e.target.dataset.a=='pick'&&e.target.value)use(e.target.dataset.id,e.target.value)});
+render();
+if(CFG.url.startsWith('http')){sb.auth.getSession().then(({data})=>{if(data.session){if(bioId()){$('#lock').hidden=false;unlock()}else pull()}else $('#login').hidden=false})}
+else $('#main').innerHTML='<div class="empty"><b>Falta configurar Supabase</b>Pega tu URL y tu anon key en CFG, al inicio del script.</div>';
+</script></body></html>
