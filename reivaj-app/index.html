@@ -96,10 +96,12 @@ let S={clients:[],pays:[],accts:[]};
 const save=()=>{};
 const isoD=t=>{const d=new Date(t);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
 const dbErr=r=>{if(r&&r.error)toast('Error: '+r.error.message)};
-async function pull(){const [c,p,a,k]=await Promise.all([sb.from('clientes').select('*'),sb.from('pagos').select('*').order('id',{ascending:false}),sb.from('cuentas').select('*'),sb.from('credenciales').select('cuenta_id,clave')]);
+const enq=(tipo,datos)=>sb.from('cambios').insert({tipo,datos}).then(r=>{if(r.error)toast('No se pudo anotar el cambio para el Sheet: '+r.error.message)});
+let accCl='';
+async function pull(){const [c,p,a,k,ce]=await Promise.all([sb.from('clientes').select('*'),sb.from('pagos').select('*').order('id',{ascending:false}),sb.from('cuentas').select('*'),sb.from('credenciales').select('cuenta_id,clave'),sb.from('cambios').select('id,tipo,datos,error').eq('estado','error')]);S.cerr=ce&&!ce.error?(ce.data||[]):[];
 S.cred={};(k.data||[]).forEach(r=>{S.cred[r.cuenta_id]=r.clave||''});
 const e=c.error||p.error||a.error;if(e){toast('Error: '+e.message);return}
-S.clients=c.data.map(r=>({id:r.id,n:r.nombre,tel:r.telefono,svc:r.servicio,p:r.precio,due:new Date(r.vence+'T00:00:00').getTime(),on:r.activo?1:0,mail:(r.correo||'').toLowerCase(),note:r.nota||'',perfil:r.perfil||'',pin:r.pin||''}));
+S.clients=c.data.map(r=>({id:r.id,n:r.nombre,tel:r.telefono,svc:r.servicio,p:r.precio,due:new Date(r.vence+'T00:00:00').getTime(),on:r.activo?1:0,mail:(r.correo||'').toLowerCase(),note:r.nota||'',perfil:r.perfil||'',pin:r.pin||'',k:r.clave_hoja||''}));
 S.pays=p.data.map(r=>({id:r.id,n:r.remitente,amt:r.monto,bank:r.banco||'',t:r.hora||'',used:r.cliente_id||0}));
 S.accts=a.data.map(r=>({id:r.id,m:r.correo,svc:r.servicio,cap:r.capacidad,used:r.ocupados})).sort((x,y)=>x.svc.localeCompare(y.svc)||x.m.localeCompare(y.m));render()}
 async function edit(id){const c=S.clients.find(x=>x.id==id);if(!c)return;
@@ -120,19 +122,26 @@ ${wad}</div>
 <label for="ep">Precio que paga (Gs.)</label><input id="ep" type="number" inputmode="numeric" value="${c.p}">
 <label for="ed">Vence</label><input id="ed" type="date" value="${isoD(c.due)}">
 <label for="eno">Nota (ej: en qué cuenta de Netflix está)</label><input id="eno" value="${esc(c.note||'')}" autocomplete="off">
-<label style="display:flex;gap:8px;align-items:center;color:var(--tx)"><input type="checkbox" id="ea" ${c.on?'checked':''} style="width:auto;margin:0"> Cliente activo</label>
+<label style="display:flex;gap:8px;align-items:center;color:var(--tx)"><input type="checkbox" id="ea" ${c.on?'checked':''} style="width:auto;margin:0"> Cliente activo <small style="color:var(--mu)">(si lo desmarcás, se libera su lugar en el Sheet)</small></label>
 <button class="big" style="margin-top:12px" data-a="esave" data-id="${id}">Guardar cambios</button>
 <button class="chip" style="width:100%;padding:11px" data-a="eclose">Cancelar</button></div>`;$('#sheet').hidden=false}
 async function esave(id){const v=i=>$('#'+i).value.trim();if(!v('en')||!v('ed')){toast('Completa nombre y fecha');return}
-const r=await sb.from('clientes').update({nombre:v('en'),telefono:v('et').replace(/\D/g,''),servicio:v('es')||'Sin servicio',precio:+v('ep')||0,vence:v('ed'),nota:v('eno')||null,perfil:v('epf')||null,pin:v('epn')||null,activo:$('#ea').checked}).eq('id',id);
-if(r.error){toast('Error: '+r.error.message);return}$('#sheet').hidden=true;toast('Cambios guardados');pull()}
+const old=S.clients.find(x=>x.id==id),nv={nombre:v('en'),telefono:v('et').replace(/\D/g,''),servicio:v('es')||'Sin servicio',precio:+v('ep')||0,vence:v('ed'),perfil:v('epf'),pin:v('epn')};
+const r=await sb.from('clientes').update({nombre:nv.nombre,telefono:nv.telefono,servicio:nv.servicio,precio:nv.precio,vence:nv.vence,nota:v('eno')||null,perfil:nv.perfil||null,pin:nv.pin||null,activo:$('#ea').checked}).eq('id',id);
+if(r.error){toast('Error: '+r.error.message);return}
+if(old){const ref={id:old.id,k:old.k,nombre:old.n,telefono:old.tel,servicio:old.svc};
+if(old.on&&!$('#ea').checked)enq('cancelar',ref);
+else{const nu={},t8=x=>String(x||'').replace(/\D/g,'').slice(-8);
+if(nv.nombre!==old.n.trim())nu.nombre=nv.nombre;if(t8(nv.telefono)!==t8(old.tel))nu.telefono=nv.telefono;if(nv.servicio!==old.svc)nu.servicio=nv.servicio;
+if(nv.precio!==+old.p)nu.precio=nv.precio;if(nv.vence!==isoD(old.due))nu.vence=nv.vence;if(nv.perfil!==(old.perfil||''))nu.perfil=nv.perfil;if(nv.pin!==(old.pin||''))nu.pin=nv.pin;
+if(Object.keys(nu).length)enq('editar',{id:old.id,k:old.k,viejo:{nombre:old.n,telefono:old.tel,servicio:old.svc},nuevo:nu,todo:nv})}}$('#sheet').hidden=true;toast('Cambios guardados');pull()}
 function usersOf(a){const us=S.clients.filter(c=>c.mail&&c.mail==String(a.m).trim().toLowerCase()&&c.svc==a.svc).sort((x,y)=>x.due-y.due);
 const nk=us.filter(c=>c.on&&c.tel).length;
 const h=`<h2 style="font-size:15px;margin:16px 0 8px">Usuarios de esta cuenta <small style="color:var(--mu)">(${us.length})</small></h2>`+(nk?`<button class="chip" data-a="kall" data-id="${a.id}" style="width:100%;margin-bottom:10px;padding:10px">🔐 Avisar cambio de clave a los ${nk} usuarios</button>`:'');
 if(!us.length)return h+'<div class="empty" style="padding:10px 0"><span style="font-size:13px">Todavía no hay usuarios cargados. Se llenan solos al sincronizar la hoja.</span></div>';
 return h+us.map(c=>{const d=dd(c.due),y=new Date(c.due).getFullYear();return `<div class="row"><div class="bd" style="background:${c.on?col(d):'var(--mu)'}">${c.on?d:'—'}<small>${c.on?'días':'baja'}</small></div><div class="info"><b>${esc(c.n)}</b><span><a href="tel:+${c.tel.replace(/\D/g,'')}" style="color:inherit">${esc(c.tel||'sin número')}</a></span><span>Vence ${fd(c.due)}/${y}</span>${extra(c)}</div><div class="act">${keyBtn(c)}${c.tel?`<a href="${wa(c)}" target="_blank" rel="noopener" aria-label="WhatsApp a ${esc(c.n)}">${WAI}</a>`:''}</div></div>`}).join('')}
 async function acct(id){kAcc=null;kIdx=0;const a=S.accts.find(x=>x.id==id)||{id:0,m:'',svc:SVC[0],cap:4,used:0};let cl='',nt='';
-if(a.id){const r=await sb.from('credenciales').select('clave,nota').eq('cuenta_id',a.id).maybeSingle();if(r.error){toast('Error: '+r.error.message);return}cl=(r.data&&r.data.clave)||'';nt=(r.data&&r.data.nota)||''}
+if(a.id){const r=await sb.from('credenciales').select('clave,nota').eq('cuenta_id',a.id).maybeSingle();if(r.error){toast('Error: '+r.error.message);return}cl=(r.data&&r.data.clave)||'';nt=(r.data&&r.data.nota)||''}accCl=cl;
 $('#sheet').innerHTML=`<div class="pane"><h1 style="font-size:22px">${a.id?'Cuenta':'Nueva cuenta'}</h1><p class="sub">${esc(a.svc)}</p>
 <label for="ac">Correo o usuario</label><div style="display:flex;gap:8px"><input id="ac" value="${esc(a.m)}" autocomplete="off"><button class="chip" data-a="copy" data-t="ac" style="margin-bottom:10px">Copiar</button></div>
 <label for="ak">Contraseña</label><div style="display:flex;gap:8px"><input id="ak" type="password" value="${esc(cl)}" autocomplete="off"><button class="chip" data-a="show" style="margin-bottom:10px">Ver</button><button class="chip" data-a="copy" data-t="ak" style="margin-bottom:10px">Copiar</button></div>
@@ -147,7 +156,9 @@ const f={correo:v('ac'),servicio:svc,capacidad:+v('ap')||0,ocupados:+v('au')||0}
 let cid=+id;if(cid){const r=await sb.from('cuentas').update(f).eq('id',cid);if(r.error){toast('Error: '+r.error.message);return}}
 else{const r=await sb.from('cuentas').insert(f).select('id').single();if(r.error){toast('Error: '+r.error.message);return}cid=r.data.id}
 const k=await sb.from('credenciales').upsert({cuenta_id:cid,clave:v('ak'),nota:v('an'),actualizado:new Date().toISOString()});
-if(k.error){toast('Error: '+k.error.message);return}$('#sheet').hidden=true;toast('Cuenta guardada');pull()}
+if(k.error){toast('Error: '+k.error.message);return}
+if(!+id)enq('cuenta',{servicio:svc,correo:v('ac'),clave:v('ak')});else if(v('ak')!==accCl)enq('clave',{servicio:svc,correo:v('ac'),clave:v('ak')});
+$('#sheet').hidden=true;toast('Cuenta guardada');pull()}
 async function copyF(i){const t=$('#'+i).value;try{await navigator.clipboard.writeText(t);toast('Copiado')}catch(e){const el=$('#'+i),ty=el.type;el.type='text';el.select();document.execCommand('copy');el.type=ty;toast('Copiado')}}
 async function doLogin(){const r=await sb.auth.signInWithPassword({email:$('#le').value.trim(),password:$('#lp').value});if(r.error){toast('No se pudo entrar: '+r.error.message);return}$('#login').hidden=true;if(window.PublicKeyCredential&&!bioId()&&confirm('¿Activar la huella para entrar más rápido la próxima vez?'))await bioOn();pull()}
 let openS=new Set(),tab='ven',f='h',cf='on',q='',loading=false;
@@ -167,7 +178,7 @@ const cancelBtn=(c,d)=>d<0?`<a href="${waC(c)}" target="_blank" rel="noopener" t
 const wa=c=>`https://api.whatsapp.com/send?phone=${c.tel.replace(/\D/g,'')}&text=${encodeURIComponent(msg(c))}`;
 const WAI='<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 5 5.1-1.3A10 10 0 1 0 12 2zm5.2 13.9c-.2.6-1.300 1.200-1.800 1.200-.5.1-1 .2-3.300-.7-2.800-1.200-4.600-4-4.700-4.200-.1-.2-1.100-1.500-1.100-2.800s.7-2 1-2.300c.2-.3.500-.3.700-.3h.5c.2 0 .4 0 .6.500l.8 2c.1.2.1.4 0 .6l-.4.600c-.1.200-.3.300-.1.600.2.300.8 1.300 1.700 2.100 1.100 1 2.100 1.300 2.400 1.400.3.100.5.100.7-.1l.9-1.100c.2-.3.400-.2.700-.1l1.900.9c.3.1.5.200.5.3.1.100.1.600-.1 1.100z"/></svg>';
 function st(n,l,c){return `<div><b style="color:${c}">${n}</b><small>${l}</small></div>`}
-function renew(id){const c=S.clients.find(x=>x.id==id);c.due=Math.max(c.due,T.getTime())+30*DAY;toast(`${c.n}: renovado hasta el ${fd(c.due)}`);sb.from('clientes').update({vence:isoD(c.due)}).eq('id',c.id).then(dbErr)}
+function renew(id){const c=S.clients.find(x=>x.id==id);c.due=Math.max(c.due,T.getTime())+30*DAY;toast(`${c.n}: renovado hasta el ${fd(c.due)}`);sb.from('clientes').update({vence:isoD(c.due)}).eq('id',c.id).then(dbErr);enq('editar',{id:c.id,k:c.k,viejo:{nombre:c.n,telefono:c.tel,servicio:c.svc},nuevo:{vence:isoD(c.due)}})}
 function sug(p){const t=new Set(tok(p.n));let best=null,bs=0;act().forEach(c=>{const s=tok(c.n).filter(w=>t.has(w)).length;if(s>bs){bs=s;best=c}});return bs>=2?best:null}
 function use(pid,cid){const p=S.pays.find(x=>x.id==pid);renew(cid);p.used=+cid;sb.from('pagos').update({cliente_id:+cid}).eq('id',p.id).then(dbErr);render()}
 function load(){if(loading)return;loading=true;render();setTimeout(()=>{loading=false;
@@ -175,8 +186,9 @@ const nw=[['Ana María Gimenez Rojas',15000,'Ueno Bank'],['Carlos Duarte Vera',7
 const rows=nw.map((x,i)=>{const d=new Date(Date.now()-i*41*6e4);return {remitente:x[0],monto:x[1],banco:x[2],hora:p2(d.getHours())+':'+p2(d.getMinutes())}});
 (rows.length?sb.from('pagos').insert(rows):Promise.resolve({})).then(r=>{if(r.error)dbErr(r);else toast(rows.length?rows.length+' transferencias nuevas':'No hay transferencias nuevas');pull()})},1300)}
 function add(){const n=$('#fn').value.trim(),t=$('#ft').value.trim();if(!n||!t){toast('Completa nombre y WhatsApp');return}
-const rows=[...document.querySelectorAll('.svb')].map(b=>({s:b.querySelector('.sv-s').value.trim()||'Sin servicio',p:+b.querySelector('.sv-p').value||0,d:+b.querySelector('.sv-d').value||30,n:b.querySelector('.sv-n').value.trim()}));
-sb.from('clientes').insert(rows.map(x=>({nombre:n,telefono:t,servicio:x.s,precio:x.p,vence:isoD(ts(x.d)),nota:x.n||null,activo:true}))).then(r=>{if(r.error){dbErr(r);return}tab='cli';cf='on';q='';toast(rows.length>1?rows.length+' servicios guardados':'Cliente guardado');pull()})}
+const rows=[...document.querySelectorAll('.svb')].map(b=>{const sel=b.querySelector('.sv-c'),ac=sel&&sel.value?S.accts.find(x=>x.id==sel.value):null;return{s:b.querySelector('.sv-s').value.trim()||'Sin servicio',p:+b.querySelector('.sv-p').value||0,d:+b.querySelector('.sv-d').value||30,n:b.querySelector('.sv-n').value.trim(),m:ac?String(ac.m).trim().toLowerCase():'',cl:ac?(S.cred[ac.id]||''):''}});
+sb.from('clientes').insert(rows.map(x=>({nombre:n,telefono:t,servicio:x.s,precio:x.p,vence:isoD(ts(x.d)),nota:x.n||null,correo:x.m||null,activo:true}))).select('id').then(r=>{if(r.error){dbErr(r);return}
+(r.data||[]).forEach((row,i)=>enq('nuevo',{cliente_id:row.id,servicio:rows[i].s,nombre:n,telefono:t,precio:rows[i].p,vence:isoD(ts(rows[i].d)),correo:rows[i].m,clave:rows[i].cl}));tab='cli';cf='on';q='';toast(rows.length>1?rows.length+' servicios guardados':'Cliente guardado');pull()})}
 const LOGOS=[['netflix','N','#e50914'],['max','max','#002be7'],['hbo','max','#002be7'],['prime','prime','#00a8e1'],['disney','D+','#113ccf'],['paramount','P','#0064ff'],['youtube','▶','#ff0000'],['spotify','S','#1db954'],['crunchy','C','#f47521'],['magis','M','#f26b21'],['tigo','T','#00377b']];
 function logo(n){const l=String(n).toLowerCase(),m=LOGOS.find(x=>l.includes(x[0]));if(!m)return `<span class="lg" style="background:var(--mu)">${esc(String(n).slice(0,1).toUpperCase())}</span>`;return `<span class="lg" style="background:${m[2]}">${m[1]}<img src="icons/svc/${m[0]}.png" alt="" onerror="this.remove()"></span>`}
 const B64=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -188,7 +200,7 @@ function bioOff(){try{localStorage.removeItem('bio')}catch(e){}toast('Huella des
 async function unlock(){const id=bioId();if(!id){$('#lock').hidden=true;pull();return}
 try{await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{type:'public-key',id:UB(id)}],userVerification:'required',timeout:60000}});$('#lock').hidden=true;pull()}catch(e){toast('No se pudo verificar la huella')}}
 let hiddenAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden){hiddenAt=Date.now()}else if(bioId()&&hiddenAt&&Date.now()-hiddenAt>60000&&$('#login').hidden){$('#lock').hidden=false;unlock()}});
-const blk=first=>`<div class="svb" style="border:1px solid var(--line);border-radius:14px;padding:4px 12px 12px;margin:10px 0 4px"><label>Servicio o combo</label><input class="sv-s" list="svl" aria-label="Servicio o combo" placeholder="Ej: Netflix + Disney+" autocomplete="off"><label>Precio (Gs.)</label><input class="sv-p" aria-label="Precio" type="number" inputmode="numeric" value="30000"><label>Vence en (días)</label><input class="sv-d" aria-label="Vence en días" type="number" inputmode="numeric" value="30"><label>Nota (opcional)</label><input class="sv-n" aria-label="Nota" placeholder="Ej: en qué cuenta de Netflix está" autocomplete="off">${first?'':'<button class="chip" data-a="rmsv" style="margin-top:8px;color:var(--bad)">Quitar este servicio</button>'}</div>`;
+const blk=first=>`<div class="svb" style="border:1px solid var(--line);border-radius:14px;padding:4px 12px 12px;margin:10px 0 4px"><label>Servicio o combo</label><input class="sv-s" list="svl" aria-label="Servicio o combo" placeholder="Ej: Netflix + Disney+" autocomplete="off"><label>Precio (Gs.)</label><input class="sv-p" aria-label="Precio" type="number" inputmode="numeric" value="30000"><label>Vence en (días)</label><input class="sv-d" aria-label="Vence en días" type="number" inputmode="numeric" value="30"><label>Cuenta (opcional)</label><select class="sv-c" aria-label="Cuenta"><option value="">Sin cuenta por ahora</option></select><label>Nota (opcional)</label><input class="sv-n" aria-label="Nota" placeholder="Ej: en qué cuenta de Netflix está" autocomplete="off">${first?'':'<button class="chip" data-a="rmsv" style="margin-top:8px;color:var(--bad)">Quitar este servicio</button>'}</div>`;
 const MESES_ES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const msgD=(c,clave)=>{const d=new Date(c.due);return `*_✅ ${svcName(c.svc)}_*\n\n*📧 Correo:* ${c.mail||''}\n*🔑 Contraseña:* ${clave||''}\n\n*☑️ Perfil:* ${c.perfil||''}\n*Pin:* ${c.pin||''}\n*📍 Vence:* ${d.getDate()} ${MESES_ES[d.getMonth()]}`};
 const acctOf=c=>c.mail?S.accts.find(x=>String(x.m).trim().toLowerCase()==c.mail&&x.svc==c.svc):null;
@@ -216,7 +228,7 @@ const r=p.used?`<span class="tag">Usada · ${esc((S.clients.find(c=>c.id==p.used
 return `<div class="row"><div class="info"><b>${esc(p.n)}</b><span>${p.t} · ${esc(p.bank)}</span><div style="margin-top:6px">${r}</div></div><div class="amt">${gs(p.amt)}</div></div>`}).join('')}};
 const V={
 ven(){const c=cnt(),free=S.accts.reduce((s,a)=>s+a.cap-a.used,0),cl=S.accts.filter(a=>!a.used).length;
-return `<h1>Vencimientos</h1><p class="sub">${act().length} clientes activos</p><div class="stats">${st(c.h,'Vencen hoy','var(--warn)')}${st(c.v,'Vencidos','var(--bad)')}${st(free,'Disponibles','var(--ok)')}${st(cl,'Cuentas por cerrar','var(--mu)')}</div><input id="q" placeholder="Buscar por nombre, teléfono o servicio" value="${esc(q)}"><div class="chips">${[['v','Vencidos'],['h','Hoy'],['a','1 a 3 días'],['b','4 a 7 días']].map(([k,l])=>`<button class="chip ${f==k?'on':''}" data-a="f" data-k="${k}">${l}<b>${c[k]}</b></button>`).join('')}</div><div id="lst">${L.ven()}</div>`},
+return `<h1>Vencimientos</h1><p class="sub">${act().length} clientes activos</p>${S.cerr&&S.cerr.length?`<button class="chip" data-a="cerr" style="width:100%;margin:0 0 10px;color:var(--bad)">⚠ ${S.cerr.length} cambio(s) no se pasaron al Sheet · tocá para ver</button>`:''}<div class="stats">${st(c.h,'Vencen hoy','var(--warn)')}${st(c.v,'Vencidos','var(--bad)')}${st(free,'Disponibles','var(--ok)')}${st(cl,'Cuentas por cerrar','var(--mu)')}</div><input id="q" placeholder="Buscar por nombre, teléfono o servicio" value="${esc(q)}"><div class="chips">${[['v','Vencidos'],['h','Hoy'],['a','1 a 3 días'],['b','4 a 7 días']].map(([k,l])=>`<button class="chip ${f==k?'on':''}" data-a="f" data-k="${k}">${l}<b>${c[k]}</b></button>`).join('')}</div><div id="lst">${L.ven()}</div>`},
 cli(){return `<h1>Clientes</h1><p class="sub">${S.clients.length} en la base</p><input id="q" placeholder="Nombre, teléfono o servicio" value="${esc(q)}"><div class="chips">${[['on','Activos'],['all','Todos'],['off','De baja']].map(([k,l])=>`<button class="chip ${cf==k?'on':''}" data-a="cf" data-k="${k}">${l}</button>`).join('')}</div><div id="lst">${L.cli()}</div>`},
 pag(){const tot=S.pays.reduce((s,p)=>s+p.amt,0),un=S.pays.filter(p=>!p.used).length;
 return `<h1>Pagos</h1><p class="sub">Transferencias recibidas</p><div class="stats" style="grid-template-columns:repeat(3,1fr)">${st(tot.toLocaleString('es-PY'),'Total cargado','var(--tx)')}${st(S.pays.length,'Transferencias','var(--tx)')}${st(un,'Sin usar','var(--warn)')}</div><button class="big" data-a="load" ${loading?'disabled':''}>${loading?'Buscando en el correo…':'Cargar transferencias'}</button><input id="q" placeholder="Buscar por nombre o banco" value="${esc(q)}"><div id="lst">${L.pag()}</div>`},
@@ -252,9 +264,13 @@ else if(a=='addsv'){$('#svs').insertAdjacentHTML('beforeend',blk(false))}
 else if(a=='rmsv'){b.closest('.svb').remove()}
 else if(a=='bio'){bioId()?bioOff():bioOn()}
 else if(a=='unlock')unlock();
+else if(a=='cerr'){alert(S.cerr.map(x=>((x.datos&&(x.datos.nombre||(x.datos.viejo&&x.datos.viejo.nombre)||x.datos.correo))||x.tipo)+': '+x.error).join('\n')+'\n\nCárgalo a mano en el Sheet. Este aviso se borra al cerrar.');sb.from('cambios').delete().eq('estado','error').then(()=>pull())}
 else if(a=='usepw'){bioOff();sb.auth.signOut().then(()=>{$('#lock').hidden=true;$('#login').hidden=false})}
 else if(a=='logout'){if(bioId()){S.clients=[];S.accts=[];$('#lock').hidden=false;return}sb.auth.signOut().then(()=>{S.clients=[];S.accts=[];$('#lp').value='';$('#login').hidden=false})}});
-document.addEventListener('input',e=>{if(e.target.id=='q'){q=e.target.value;$('#lst').innerHTML=L[tab]()}});
+function fillAcc(b){const sel=b.querySelector('.sv-c'),sv=b.querySelector('.sv-s').value.trim().toLowerCase();if(!sel)return;
+sel.innerHTML='<option value="">Sin cuenta por ahora</option>'+S.accts.filter(a=>String(a.svc).toLowerCase()==sv&&a.cap-a.used>0).map(a=>`<option value="${a.id}">${esc(a.m)} · ${a.cap-a.used} libre${a.cap-a.used>1?'s':''}</option>`).join('')}
+document.addEventListener('input',e=>{if(e.target.id=='q'){q=e.target.value;$('#lst').innerHTML=L[tab]()}else if(e.target.classList&&e.target.classList.contains('sv-s'))fillAcc(e.target.closest('.svb'))});
+document.addEventListener('change',e=>{if(e.target.classList&&e.target.classList.contains('sv-s'))fillAcc(e.target.closest('.svb'))});
 document.addEventListener('change',e=>{if(e.target.id=='as'){const o=$('#as2');o.hidden=e.target.value!='__otro';if(!o.hidden)o.focus()}
 if(e.target.dataset.a=='pick'&&e.target.value)use(e.target.dataset.id,e.target.value)});
 render();
