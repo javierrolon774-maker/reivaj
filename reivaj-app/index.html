@@ -135,7 +135,7 @@ else{const nu={},t8=x=>String(x||'').replace(/\D/g,'').slice(-8);
 if(nv.nombre!==old.n.trim())nu.nombre=nv.nombre;if(t8(nv.telefono)!==t8(old.tel))nu.telefono=nv.telefono;if(nv.servicio!==old.svc)nu.servicio=nv.servicio;
 if(nv.precio!==+old.p)nu.precio=nv.precio;if(nv.vence!==isoD(old.due))nu.vence=nv.vence;if(nv.perfil!==(old.perfil||''))nu.perfil=nv.perfil;if(nv.pin!==(old.pin||''))nu.pin=nv.pin;
 if(Object.keys(nu).length)enq('editar',{id:old.id,k:old.k,viejo:{nombre:old.n,telefono:old.tel,servicio:old.svc},nuevo:nu,todo:nv})}}$('#sheet').hidden=true;toast('Cambios guardados');pull()}
-function usersOf(a){const us=S.clients.filter(c=>c.mail&&c.mail==String(a.m).trim().toLowerCase()&&c.svc==a.svc).sort((x,y)=>x.due-y.due);
+function usersOf(a){const us=S.clients.filter(c=>c.on&&c.mail&&c.mail==String(a.m).trim().toLowerCase()&&c.svc==a.svc).sort((x,y)=>x.due-y.due);
 const nk=us.filter(c=>c.on&&c.tel).length;
 const h=`<h2 style="font-size:15px;margin:16px 0 8px">Usuarios de esta cuenta <small style="color:var(--mu)">(${us.length})</small></h2>`+(nk?`<button class="chip" data-a="kall" data-id="${a.id}" style="width:100%;margin-bottom:10px;padding:10px">🔐 Avisar cambio de clave a los ${nk} usuarios</button>`:'');
 if(!us.length)return h+'<div class="empty" style="padding:10px 0"><span style="font-size:13px">Todavía no hay usuarios cargados. Se llenan solos al sincronizar la hoja.</span></div>';
