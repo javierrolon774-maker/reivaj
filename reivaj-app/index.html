@@ -60,7 +60,7 @@ nav button.on{color:var(--ac);font-weight:600}
 nav svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .lg{width:34px;height:34px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:11px;position:relative;overflow:hidden;flex:none;letter-spacing:-.3px}.lg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#fff}
 #lock{position:absolute;inset:0;background:var(--bg);z-index:6;padding:90px 24px;text-align:center}#lock[hidden]{display:none}#lock img{width:120px;height:120px;border-radius:26px;margin-bottom:14px}#lock .big{margin-top:18px}#lock .lnk{background:none;border:0;color:var(--mu);font:inherit;margin-top:18px;cursor:pointer;text-decoration:underline}
-#login{position:absolute;inset:0;background:var(--bg);z-index:5;padding:60px 24px}#login[hidden]{display:none}
+img.bn{display:block;width:100%;height:auto;border-radius:16px;margin:0 0 18px}#lock img.bn{width:100%;height:auto;border-radius:16px;margin:0 0 18px}#login{position:absolute;inset:0;background:var(--bg);z-index:5;padding:40px 24px;overflow:auto}#login[hidden]{display:none}
 #lst .sec{margin-bottom:6px}
 .shd{width:100%;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px;color:var(--tx);font:inherit;cursor:pointer;text-align:left}
 .shd b{flex:1}.shd span{color:var(--mu);font-size:12px}.shd i{font-style:normal;color:var(--mu);width:14px;text-align:center}
@@ -73,8 +73,8 @@ nav svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;st
 </style></head>
 <body><div id="app">
 <header><b style="display:flex;align-items:center;gap:10px"><img src="icons/icon-192.png" alt="" width="34" height="34" style="border-radius:9px">Servicios <span>Reivaj</span></b><div><button class="ib" data-a="theme" title="Cambiar tema" aria-label="Cambiar tema">◐</button><button class="ib" data-a="reset" title="Actualizar datos" aria-label="Actualizar datos">↺</button><button class="ib" data-a="bio" title="Huella" aria-label="Activar o desactivar huella">☝</button><button class="ib" data-a="logout" title="Cerrar sesión" aria-label="Cerrar sesión">⎋</button></div></header>
-<div id="lock" hidden><img src="icons/icon-192.png" alt=""><h1>Servicios Reivaj</h1><p class="sub">Desbloquea con tu huella</p><button class="big" data-a="unlock">Desbloquear</button><br><button class="lnk" data-a="usepw">Usar contraseña</button></div>
-<div id="login" hidden><h1>Entrar</h1><p class="sub">Inicia sesión con tu usuario de Supabase</p><label for="le">Correo</label><input id="le" type="email" autocomplete="username"><label for="lp">Contraseña</label><input id="lp" type="password" autocomplete="current-password"><button class="big" data-a="login">Entrar</button></div>
+<div id="lock" hidden><img class="bn" src="icons/banner.jpg" alt="Servicios Reivaj"><h1>Servicios Reivaj</h1><p class="sub">Desbloquea con tu huella</p><button class="big" data-a="unlock">Desbloquear</button><br><button class="lnk" data-a="usepw">Usar contraseña</button></div>
+<div id="login" hidden><img class="bn" src="icons/banner.jpg" alt="Servicios Reivaj"><h1>Entrar</h1><p class="sub">Inicia sesión con tu usuario de Supabase</p><label for="le">Correo</label><input id="le" type="email" autocomplete="username"><label for="lp">Contraseña</label><input id="lp" type="password" autocomplete="current-password"><button class="big" data-a="login">Entrar</button></div>
 <div id="main"></div><div id="sheet" hidden></div><div id="toast"></div>
 <nav id="nav"></nav></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -149,7 +149,7 @@ else{const r=await sb.from('cuentas').insert(f).select('id').single();if(r.error
 const k=await sb.from('credenciales').upsert({cuenta_id:cid,clave:v('ak'),nota:v('an'),actualizado:new Date().toISOString()});
 if(k.error){toast('Error: '+k.error.message);return}$('#sheet').hidden=true;toast('Cuenta guardada');pull()}
 async function copyF(i){const t=$('#'+i).value;try{await navigator.clipboard.writeText(t);toast('Copiado')}catch(e){const el=$('#'+i),ty=el.type;el.type='text';el.select();document.execCommand('copy');el.type=ty;toast('Copiado')}}
-async function doLogin(){const r=await sb.auth.signInWithPassword({email:$('#le').value.trim(),password:$('#lp').value});if(r.error){toast('No se pudo entrar: '+r.error.message);return}$('#login').hidden=true;pull()}
+async function doLogin(){const r=await sb.auth.signInWithPassword({email:$('#le').value.trim(),password:$('#lp').value});if(r.error){toast('No se pudo entrar: '+r.error.message);return}$('#login').hidden=true;if(window.PublicKeyCredential&&!bioId()&&confirm('¿Activar la huella para entrar más rápido la próxima vez?'))await bioOn();pull()}
 let openS=new Set(),tab='ven',f='h',cf='on',q='',loading=false;
 const rg={v:d=>d<0,h:d=>d==0,a:d=>d>=1&&d<=3,b:d=>d>=4&&d<=7};
 const act=()=>S.clients.filter(c=>c.on);
@@ -253,7 +253,7 @@ else if(a=='rmsv'){b.closest('.svb').remove()}
 else if(a=='bio'){bioId()?bioOff():bioOn()}
 else if(a=='unlock')unlock();
 else if(a=='usepw'){bioOff();sb.auth.signOut().then(()=>{$('#lock').hidden=true;$('#login').hidden=false})}
-else if(a=='logout'){sb.auth.signOut().then(()=>{S.clients=[];S.accts=[];$('#lp').value='';$('#login').hidden=false})}});
+else if(a=='logout'){if(bioId()){S.clients=[];S.accts=[];$('#lock').hidden=false;return}sb.auth.signOut().then(()=>{S.clients=[];S.accts=[];$('#lp').value='';$('#login').hidden=false})}});
 document.addEventListener('input',e=>{if(e.target.id=='q'){q=e.target.value;$('#lst').innerHTML=L[tab]()}});
 document.addEventListener('change',e=>{if(e.target.id=='as'){const o=$('#as2');o.hidden=e.target.value!='__otro';if(!o.hidden)o.focus()}
 if(e.target.dataset.a=='pick'&&e.target.value)use(e.target.dataset.id,e.target.value)});
