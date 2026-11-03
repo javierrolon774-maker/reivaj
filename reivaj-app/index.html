@@ -98,6 +98,9 @@ let S={clients:[],pays:[],accts:[]};
 const save=()=>{};
 const isoD=t=>{const d=new Date(t);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
 const dbErr=r=>{if(r&&r.error)toast('Error: '+r.error.message)};
+const APP_VER='202611030140';   // al subir una versión nueva, la app abierta en el celular se recarga sola
+async function verNueva(){try{const r=await fetch(location.pathname+'?chk='+Date.now(),{cache:'no-store'});const t=await r.text();const m=t.match(/APP_VER='(\d+)'/);if(m&&m[1]!==APP_VER)location.replace(location.pathname+'?v='+m[1])}catch(e){}}
+verNueva();document.addEventListener('visibilitychange',()=>{if(!document.hidden)verNueva()});
 const enq=(tipo,datos)=>sb.from('cambios').insert({tipo,datos}).then(r=>{if(r.error)toast('No se pudo anotar el cambio para el Sheet: '+r.error.message)});
 let accCl='';
 async function pull(){const [c,p,a,k,ce,hk,av]=await Promise.all([sb.from('clientes').select('*'),sb.from('pagos').select('*').order('id',{ascending:false}),sb.from('cuentas').select('*'),sb.from('credenciales').select('cuenta_id,clave'),sb.from('cambios').select('id,tipo,datos,error').eq('estado','error'),sb.from('ajustes').select('valor').eq('clave','hook').maybeSingle(),sb.from('avisos').select('id,creado,texto,mensaje').eq('visto',false).order('id',{ascending:false})]);S.avisos=av&&!av.error?(av.data||[]):[];S.cerr=ce&&!ce.error?(ce.data||[]):[];S.hook=(hk&&hk.data&&hk.data.valor)||S.hook||'';
@@ -262,8 +265,8 @@ else if(a=='load')load();
 else if(a=='use'){use(id,b.dataset.c);$('#sheet').hidden=true}
 else if(a=='pickopen')pickOpen(id);
 else if(a=='blq')blqOpen();
-else if(a=='edel'){const c=S.clients.find(x=>x.id==id);if(c&&!c.on&&confirm(`¿Eliminar a ${c.n.trim()} (${c.svc}) de la app? No se puede deshacer.`))sb.from('clientes').delete().eq('id',c.id).then(r=>{if(r.error){dbErr(r);return}$('#sheet').hidden=true;toast('Cliente eliminado');pull()})}
-else if(a=='delbaja'){const ids=S.clients.filter(c=>!c.on).map(c=>c.id);if(ids.length&&confirm(`¿Borrar los ${ids.length} clientes de baja de la app? No se puede deshacer.\n\nSi alguno sigue cargado en el Sheet, borrá también su fila allá.`))sb.from('clientes').delete().in('id',ids).then(r=>{if(r.error){dbErr(r);return}toast(ids.length+' clientes de baja borrados');pull()})}
+else if(a=='edel'){const c=S.clients.find(x=>x.id==id);if(c&&!c.on&&confirm(`¿Eliminar a ${c.n.trim()} (${c.svc})? Se borra de la app y, si su fila sigue en el Sheet, se vacía. No se puede deshacer.`)){enq('cancelar',{id:c.id,k:c.k,nombre:c.n,telefono:c.tel,servicio:c.svc,borrar:true});sb.from('clientes').delete().eq('id',c.id).then(r=>{if(r.error){dbErr(r);return}$('#sheet').hidden=true;toast('Cliente eliminado');pull()})}}
+else if(a=='delbaja'){const cs=S.clients.filter(c=>!c.on),ids=cs.map(c=>c.id);if(ids.length&&confirm(`¿Borrar los ${ids.length} clientes de baja? Se borran de la app y, si su fila sigue en el Sheet, se vacía. No se puede deshacer.`)){Promise.all(cs.map(c=>enq('cancelar',{id:c.id,k:c.k,nombre:c.n,telefono:c.tel,servicio:c.svc,borrar:true}))).then(()=>sb.from('clientes').delete().in('id',ids)).then(r=>{if(r&&r.error){dbErr(r);return}toast(ids.length+' clientes de baja borrados');pull()})}}
 else if(a=='blqsave')blqSave();
 else if(a=='arch'||a=='unarch'){const p=S.pays.find(x=>x.id==id);if(p){p.arch=a=='arch';sb.from('pagos').update({archivado:p.arch}).eq('id',p.id).then(dbErr);render();toast(p.arch?'Marcado como registrado (no se cambió ninguna fecha)':'Listo, vuelve a estar sin usar')}}
 else if(a=='pf'){pf=b.dataset.k;render()}
