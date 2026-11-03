@@ -182,7 +182,7 @@ const WAI='<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><
 function st(n,l,c){return `<div><b style="color:${c}">${n}</b><small>${l}</small></div>`}
 function renew(id){const c=S.clients.find(x=>x.id==id);c.due=Math.max(c.due,T.getTime())+30*DAY;toast(`${c.n}: renovado hasta el ${fd(c.due)}`);sb.from('clientes').update({vence:isoD(c.due)}).eq('id',c.id).then(dbErr);enq('editar',{id:c.id,k:c.k,viejo:{nombre:c.n,telefono:c.tel,servicio:c.svc},nuevo:{vence:isoD(c.due)}})}
 function pagosF(){const t0=T.getTime(),m=new Date(t0);return S.pays.filter(p=>{if(q&&!(p.n+p.bank).toLowerCase().includes(q.toLowerCase()))return false;
-if(pf=='s7')return p.f>=t0-6*DAY;if(pf=='mes'){const d=new Date(p.f);return d.getMonth()==m.getMonth()&&d.getFullYear()==m.getFullYear()}return true})}
+if(pf=='s7')return p.f>=t0-6*DAY;if(pf=='mes'){const d=new Date(p.f);return d.getMonth()==m.getMonth()&&d.getFullYear()==m.getFullYear()}return true}).sort((x,y)=>(y.f||0)-(x.f||0)||y.id-x.id)}
 function pickList(pid,qq){const p=S.pays.find(x=>x.id==pid);if(!p)return '';const w=tok(qq||'');
 let cs=act().filter(c=>!w.length||w.every(x=>(tok(c.n+' '+c.svc).join(' ')+' '+String(c.tel).slice(-8)).includes(x)||String(c.tel).includes(x)));
 const eq=cs.filter(c=>+c.p===+p.amt).sort((a,b)=>a.due-b.due),ot=cs.filter(c=>+c.p!==+p.amt).sort((a,b)=>a.n.localeCompare(b.n));
