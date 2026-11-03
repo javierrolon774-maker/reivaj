@@ -191,7 +191,7 @@ $('#sheet').innerHTML=`<div class="pane"><h1 style="font-size:20px">Asignar pago
 function sug(p){const t=new Set(tok(p.n));let best=null,bs=0;act().forEach(c=>{const s=tok(c.n).filter(w=>t.has(w)).length;if(s>bs){bs=s;best=c}});return bs>=2?best:null}
 function use(pid,cid){const p=S.pays.find(x=>x.id==pid);renew(cid);p.used=+cid;sb.from('pagos').update({cliente_id:+cid}).eq('id',p.id).then(dbErr);render()}
 async function load(){if(loading)return;loading=true;render();let msg='Lista actualizada';
-if(S.hook){try{const se=await sb.auth.getSession(),tk=se&&se.data&&se.data.session&&se.data.session.access_token,ac=new AbortController(),to=setTimeout(()=>ac.abort(),45000);
+if(S.hook){try{let se=await sb.auth.getSession();if(!(se&&se.data&&se.data.session)){await sb.auth.refreshSession();se=await sb.auth.getSession()}const tk=se&&se.data&&se.data.session&&se.data.session.access_token,ac=new AbortController(),to=setTimeout(()=>ac.abort(),45000);
 const r=await fetch(S.hook,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({token:tk}),signal:ac.signal});clearTimeout(to);const j=await r.json();if(!j.ok)msg='No se pudo leer el correo: '+(j.error||'error')}catch(e){msg='No se pudo leer el correo ahora; se lee solo cada minuto'}}
 else msg='Lista actualizada (el correo se lee solo cada minuto)';
 await pull();loading=false;render();toast(msg)}
