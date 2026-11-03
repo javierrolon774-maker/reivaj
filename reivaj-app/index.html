@@ -103,7 +103,7 @@ let accCl='';
 async function pull(){const [c,p,a,k,ce,hk]=await Promise.all([sb.from('clientes').select('*'),sb.from('pagos').select('*').order('id',{ascending:false}),sb.from('cuentas').select('*'),sb.from('credenciales').select('cuenta_id,clave'),sb.from('cambios').select('id,tipo,datos,error').eq('estado','error'),sb.from('ajustes').select('valor').eq('clave','hook').maybeSingle()]);S.cerr=ce&&!ce.error?(ce.data||[]):[];S.hook=(hk&&hk.data&&hk.data.valor)||S.hook||'';
 S.cred={};(k.data||[]).forEach(r=>{S.cred[r.cuenta_id]=r.clave||''});
 const e=c.error||p.error||a.error;if(e){toast('Error: '+e.message);return}
-S.clients=c.data.map(r=>({id:r.id,n:r.nombre,tel:r.telefono,svc:r.servicio,p:r.precio,due:new Date(r.vence+'T00:00:00').getTime(),on:r.activo?1:0,mail:(r.correo||'').toLowerCase(),note:r.nota||'',perfil:r.perfil||'',pin:r.pin||'',k:r.clave_hoja||''}));
+S.clients=c.data.map(r=>({id:r.id,n:r.nombre,tel:r.telefono,svc:r.servicio,p:r.precio,due:new Date(r.vence+'T00:00:00').getTime(),on:r.activo?1:0,mail:(r.correo||'').toLowerCase(),note:r.nota||'',perfil:r.perfil||'',pin:r.pin||'',k:r.clave_hoja||'',ct:r.contacto||''}));
 S.pays=p.data.map(r=>({id:r.id,n:r.remitente,amt:r.monto,bank:r.banco||'',t:r.hora||'',used:r.cliente_id||0,arch:!!r.archivado,f:new Date(r.fecha||r.creado).getTime()}));
 S.accts=a.data.map(r=>({id:r.id,m:r.correo,svc:r.servicio,cap:r.capacidad,used:r.ocupados})).sort((x,y)=>x.svc.localeCompare(y.svc)||x.m.localeCompare(y.m));render()}
 async function edit(id){const c=S.clients.find(x=>x.id==id);if(!c)return;
@@ -167,7 +167,7 @@ let openS=new Set(),tab='ven',f='h',cf='on',q='',loading=false,pf='s7',pickPid=0
 const rg={v:d=>d<0,h:d=>d==0,a:d=>d>=1&&d<=3,b:d=>d>=4&&d<=7};
 const act=()=>S.clients.filter(c=>c.on);
 const cnt=()=>{const o={};for(const k in rg)o[k]=act().filter(c=>rg[k](dd(c.due))).length;return o};
-const hit=c=>!q||(c.n+' '+c.tel+' '+c.svc).toLowerCase().includes(q.toLowerCase());
+const hit=c=>!q||(c.n+' '+c.tel+' '+c.svc+' '+(c.ct||'')).toLowerCase().includes(q.toLowerCase());
 const col=d=>d<0?'var(--bad)':d==0?'var(--warn)':d<=7?'#b8860b':'var(--ok)';
 const svcName=x=>String(x).replace(/\s*\(cuenta\)/i,'').replace(/\+/g,' PLUS').replace(/\s+/g,' ').trim().toUpperCase();
 const msg=c=>{const d=dd(c.due),h=c.n.trim().split(/\s+/)[0],s=svcName(c.svc);
@@ -223,7 +223,7 @@ const waD=c=>wl(c,msgD(c,claveDe(c)));
 const msgK=(c,clave)=>{const d=new Date(c.due);return `*_🔐 CAMBIO DE CONTRASEÑA · ${svcName(c.svc)}_*\n\nHola, ${c.n.trim().split(/\s+/)[0]}. Se cambió la contraseña de tu cuenta. Estos son tus datos actualizados:\n\n*📧 Correo:* ${c.mail||''}\n*🔑 Nueva contraseña:* ${clave||''}\n\n*☑️ Perfil:* ${c.perfil||''}\n*Pin:* ${c.pin||''}\n*📍 Vence:* ${d.getDate()} ${MESES_ES[d.getMonth()]}`};
 const keyBtn=c=>c.mail&&c.tel?`<a href="${waD(c)}" target="_blank" rel="noopener" title="Enviar datos de la cuenta" aria-label="Enviar datos a ${esc(c.n)}" style="color:var(--ac)">🔑</a>`:'';
 let kAcc=null,kIdx=0;
-const extra=c=>(c.perfil||c.pin?`<span>👤 ${esc(c.perfil||'')}${c.pin?(c.perfil?' · ':'')+'PIN '+esc(c.pin):''}</span>`:'')+(c.note?`<span>📝 ${esc(c.note)}</span>`:'');
+const extra=c=>(c.ct&&tok(c.ct).join(' ')!=tok(c.n).join(' ')?`<span>📇 ${esc(c.ct)}</span>`:'')+(c.perfil||c.pin?`<span>👤 ${esc(c.perfil||'')}${c.pin?(c.perfil?' · ':'')+'PIN '+esc(c.pin):''}</span>`:'')+(c.note?`<span>📝 ${esc(c.note)}</span>`:'');
 const L={
 ven(){const a=act().filter(c=>rg[f](dd(c.due))&&hit(c)).sort((x,y)=>x.due-y.due);
 return a.length?a.map(c=>{const d=dd(c.due);return `<div class="row"><div class="bd" style="background:${col(d)}">${Math.abs(d)}<small>${d==0?'hoy':d<0?'atraso':'días'}</small></div><div class="info" data-a="edit" data-id="${c.id}"><b>${esc(c.n)}</b><span>${esc(c.svc)}</span><span>Vence ${fd(c.due)} · ${gs(c.p)}</span>${extra(c)}</div><div class="act">${cancelBtn(c,d)}${keyBtn(c)}<a href="${wa(c)}" target="_blank" rel="noopener" title="Avisar por WhatsApp" aria-label="Avisar a ${esc(c.n)} por WhatsApp">${WAI}</a><button data-a="renew" data-id="${c.id}" title="Renovar 30 días" aria-label="Renovar a ${esc(c.n)}">↻</button></div></div>`}).join(''):'<div class="empty"><b>Nada en este rango</b>Prueba con otro filtro.</div>'},
