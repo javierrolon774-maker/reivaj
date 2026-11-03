@@ -85,6 +85,8 @@ const p2=n=>String(n).padStart(2,'0'),fd=t=>{const d=new Date(t);return p2(d.get
 const gs=n=>'Gs. '+Number(n).toLocaleString('es-PY');
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const tok=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z ]/g,' ').split(/\s+/).filter(w=>w.length>2);
+const PRE={'Netflix':30000,'Netflix Privado':40000,'Spotify':25000,'Prime Video (cuenta)':20000,'Paramount':20000,'Max':25000,'Crunchyroll':20000,'Disney+':35000,'Disney+ (cuenta)':35000,'Tigo Sports':40000,'MagisTv':60000};
+const svOpts=(cur)=>(cur&&!SVC.includes(cur)?`<option value="${esc(cur)}" selected>${esc(cur)} (no está en el Sheet)</option>`:'')+SVC.map(x=>`<option value="${esc(x)}" ${x==cur?'selected':''}>${esc(x)}</option>`).join('');
 const SVC=['Crunchyroll', 'Disney+', 'Disney+ (cuenta)', 'MagisTv', 'Max', 'Max (cuenta)', 'Netflix', 'Netflix Privado', 'Paramount', 'Paramount (cuenta)', 'Prime Video (cuenta)', 'Spotify', 'YouTube Premium','Tigo Sports'];
 const seed=()=>({id:30,
 clients:[['Ana Giménez','595981100001','Disney Premium',15000,0],['Carlos Duarte','595982100002','Tigo Sports',70000,0],['Lucía Benítez','595983100003','Netflix-Premium',30000,0],['Marcos Ríos','595984100004','Spotify',25000,3],['Sofía Acosta','595985100005','HBO Max',25000,9],['Julián Vera','595986100006','Netflix',30000,-2],['Mabel Cáceres','595971100007','Disney Premium',15000,-5],['Diego Fleitas','595972100008','Netflix-Premium',30000,2],['Rocío Salinas','595973100009','HBO Max',25000,6],['Hugo Samaniego','595974100010','Spotify',25000,15],['Elena Ortiz','595975100011','Tigo Sports',70000,1],['Pablo Insfrán','595976100012','Netflix',30000,22]].map((a,i)=>({id:i+1,n:a[0],tel:a[1],svc:a[2],p:a[3],due:ts(a[4]),on:1})).concat([{id:20,n:'Nadia Pereira',tel:'595977100013',svc:'Spotify',p:25000,due:ts(-40),on:0}]),
@@ -102,7 +104,7 @@ async function pull(){const [c,p,a,k,ce,hk]=await Promise.all([sb.from('clientes
 S.cred={};(k.data||[]).forEach(r=>{S.cred[r.cuenta_id]=r.clave||''});
 const e=c.error||p.error||a.error;if(e){toast('Error: '+e.message);return}
 S.clients=c.data.map(r=>({id:r.id,n:r.nombre,tel:r.telefono,svc:r.servicio,p:r.precio,due:new Date(r.vence+'T00:00:00').getTime(),on:r.activo?1:0,mail:(r.correo||'').toLowerCase(),note:r.nota||'',perfil:r.perfil||'',pin:r.pin||'',k:r.clave_hoja||''}));
-S.pays=p.data.map(r=>({id:r.id,n:r.remitente,amt:r.monto,bank:r.banco||'',t:r.hora||'',used:r.cliente_id||0,f:new Date(r.fecha||r.creado).getTime()}));
+S.pays=p.data.map(r=>({id:r.id,n:r.remitente,amt:r.monto,bank:r.banco||'',t:r.hora||'',used:r.cliente_id||0,arch:!!r.archivado,f:new Date(r.fecha||r.creado).getTime()}));
 S.accts=a.data.map(r=>({id:r.id,m:r.correo,svc:r.servicio,cap:r.capacidad,used:r.ocupados})).sort((x,y)=>x.svc.localeCompare(y.svc)||x.m.localeCompare(y.m));render()}
 async function edit(id){const c=S.clients.find(x=>x.id==id);if(!c)return;
 const ac=c.mail?S.accts.find(x=>String(x.m).trim().toLowerCase()==c.mail&&x.svc==c.svc):null;let cl='';
@@ -118,7 +120,7 @@ ${fl('epn','PIN',c.pin||'',false,'inputmode="numeric"')}
 ${wad}</div>
 <label for="en">Nombre</label><input id="en" value="${esc(c.n)}">
 <label for="et">WhatsApp (con código de país)</label><input id="et" inputmode="tel" value="${esc(c.tel)}">
-<label for="es">Servicio o combo</label><input id="es" list="svl" value="${esc(c.svc)}" autocomplete="off"><datalist id="svl">${SVC.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+<label for="es">Servicio</label><select id="es">${svOpts(c.svc)}</select>
 <label for="ep">Precio que paga (Gs.)</label><input id="ep" type="number" inputmode="numeric" value="${c.p}">
 <label for="ed">Vence</label><input id="ed" type="date" value="${isoD(c.due)}">
 <label for="eno">Nota (ej: en qué cuenta de Netflix está)</label><input id="eno" value="${esc(c.note||'')}" autocomplete="off">
@@ -196,6 +198,7 @@ const r=await fetch(S.hook,{method:'POST',headers:{'Content-Type':'text/plain;ch
 else msg='Lista actualizada (el correo se lee solo cada minuto)';
 await pull();loading=false;render();toast(msg)}
 function add(){const n=$('#fn').value.trim(),t=$('#ft').value.trim();if(!n||!t){toast('Completa nombre y WhatsApp');return}
+if([...document.querySelectorAll('.sv-s')].some(x=>!x.value)){toast('Elegí el servicio');return}
 const rows=[...document.querySelectorAll('.svb')].map(b=>{const sel=b.querySelector('.sv-c'),ac=sel&&sel.value?S.accts.find(x=>x.id==sel.value):null;return{s:b.querySelector('.sv-s').value.trim()||'Sin servicio',p:+b.querySelector('.sv-p').value||0,d:+b.querySelector('.sv-d').value||30,n:b.querySelector('.sv-n').value.trim(),m:ac?String(ac.m).trim().toLowerCase():'',cl:ac?(S.cred[ac.id]||''):''}});
 sb.from('clientes').insert(rows.map(x=>({nombre:n,telefono:t,servicio:x.s,precio:x.p,vence:isoD(ts(x.d)),nota:x.n||null,correo:x.m||null,activo:true}))).select('id').then(r=>{if(r.error){dbErr(r);return}
 (r.data||[]).forEach((row,i)=>enq('nuevo',{cliente_id:row.id,servicio:rows[i].s,nombre:n,telefono:t,precio:rows[i].p,vence:isoD(ts(rows[i].d)),correo:rows[i].m,clave:rows[i].cl}));tab='cli';cf='on';q='';toast(rows.length>1?rows.length+' servicios guardados':'Cliente guardado');pull()})}
@@ -210,7 +213,7 @@ function bioOff(){try{localStorage.removeItem('bio')}catch(e){}toast('Huella des
 async function unlock(){const id=bioId();if(!id){$('#lock').hidden=true;pull();return}
 try{await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{type:'public-key',id:UB(id)}],userVerification:'required',timeout:60000}});$('#lock').hidden=true;pull()}catch(e){toast('No se pudo verificar la huella')}}
 let hiddenAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden){hiddenAt=Date.now()}else if(bioId()&&hiddenAt&&Date.now()-hiddenAt>60000&&$('#login').hidden){$('#lock').hidden=false;unlock()}});
-const blk=first=>`<div class="svb" style="border:1px solid var(--line);border-radius:14px;padding:4px 12px 12px;margin:10px 0 4px"><label>Servicio o combo</label><input class="sv-s" list="svl" aria-label="Servicio o combo" placeholder="Ej: Netflix + Disney+" autocomplete="off"><label>Precio (Gs.)</label><input class="sv-p" aria-label="Precio" type="number" inputmode="numeric" value="30000"><label>Vence en (días)</label><input class="sv-d" aria-label="Vence en días" type="number" inputmode="numeric" value="30"><label>Cuenta (opcional)</label><select class="sv-c" aria-label="Cuenta"><option value="">Sin cuenta por ahora</option></select><label>Nota (opcional)</label><input class="sv-n" aria-label="Nota" placeholder="Ej: en qué cuenta de Netflix está" autocomplete="off">${first?'':'<button class="chip" data-a="rmsv" style="margin-top:8px;color:var(--bad)">Quitar este servicio</button>'}</div>`;
+const blk=first=>`<div class="svb" style="border:1px solid var(--line);border-radius:14px;padding:4px 12px 12px;margin:10px 0 4px"><label>Servicio</label><select class="sv-s" aria-label="Servicio"><option value="">— Elegí el servicio —</option>${svOpts('')}</select><label>Precio (Gs.)</label><input class="sv-p" aria-label="Precio" type="number" inputmode="numeric" value="30000"><label>Vence en (días)</label><input class="sv-d" aria-label="Vence en días" type="number" inputmode="numeric" value="30"><label>Cuenta (opcional)</label><select class="sv-c" aria-label="Cuenta"><option value="">Sin cuenta por ahora</option></select><label>Nota (opcional)</label><input class="sv-n" aria-label="Nota" placeholder="Ej: en qué cuenta de Netflix está" autocomplete="off">${first?'':'<button class="chip" data-a="rmsv" style="margin-top:8px;color:var(--bad)">Quitar este servicio</button>'}</div>`;
 const MESES_ES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const msgD=(c,clave)=>{const d=new Date(c.due);return `*_✅ ${svcName(c.svc)}_*\n\n*📧 Correo:* ${c.mail||''}\n*🔑 Contraseña:* ${clave||''}\n\n*☑️ Perfil:* ${c.perfil||''}\n*Pin:* ${c.pin||''}\n*📍 Vence:* ${d.getDate()} ${MESES_ES[d.getMonth()]}`};
 const acctOf=c=>c.mail?S.accts.find(x=>String(x.m).trim().toLowerCase()==c.mail&&x.svc==c.svc):null;
@@ -233,14 +236,14 @@ const g={};a.forEach(x=>(g[x.svc]=g[x.svc]||[]).push(x));
 return Object.keys(g).sort((x,y)=>x.localeCompare(y)).map(k=>{const l=g[k],free=l.reduce((t,x)=>t+Math.max(0,x.cap-x.used),0),op=!!q||openS.has(k);
 return `<div class="sec"><button class="shd" data-a="sec" data-k="${esc(k)}" aria-expanded="${op}">${logo(k)}<b>${esc(k)}</b><span>${l.length} ${l.length==1?'cuenta':'cuentas'} · ${free} libres</span><i>${op?'▾':'▸'}</i></button>${op?l.map(row).join(''):''}</div>`}).join('')},
 pag(){const ps=pagosF();if(!ps.length)return '<div class="empty"><b>Sin transferencias</b>No hay transferencias en este período. Cuando llegue un correo del banco, aparece acá solo.</div>';
-return ps.map(p=>{const s=p.used?null:sug(p);
-const r=p.used?`<span class="tag">Usada · ${esc((S.clients.find(c=>c.id==p.used)||{n:''}).n)}</span>`:`${s?`<button class="btn" data-a="use" data-id="${p.id}" data-c="${s.id}">Aplicar a ${esc(s.n.split(' ')[0])}</button> `:''}<button class="${s?'chip':'btn'}" data-a="pickopen" data-id="${p.id}">${s?'Otro cliente…':'Asignar a…'}</button>`;
+return ps.map(p=>{const s=p.used||p.arch?null:sug(p);
+const r=p.used?`<span class="tag">Usada · ${esc((S.clients.find(c=>c.id==p.used)||{n:''}).n)}</span>`:p.arch?`<span class="tag">Registrado a mano</span> <button class="chip" data-a="unarch" data-id="${p.id}">Deshacer</button>`:`${s?`<button class="btn" data-a="use" data-id="${p.id}" data-c="${s.id}">Aplicar a ${esc(s.n.split(' ')[0])}</button> `:''}<button class="${s?'chip':'btn'}" data-a="pickopen" data-id="${p.id}">${s?'Otro cliente…':'Asignar a…'}</button> <button class="chip" data-a="arch" data-id="${p.id}" title="Ya renové a mano: no cambia ninguna fecha">Ya lo registré</button>`;
 return `<div class="row"><div class="info"><b>${esc(p.n)}</b><span>${p.t} · ${esc(p.bank)}</span><div style="margin-top:6px">${r}</div></div><div class="amt">${gs(p.amt)}</div></div>`}).join('')}};
 const V={
 ven(){const c=cnt(),free=S.accts.reduce((s,a)=>s+a.cap-a.used,0),cl=S.accts.filter(a=>!a.used).length;
 return `<h1>Vencimientos</h1><p class="sub">${act().length} clientes activos</p>${S.cerr&&S.cerr.length?`<button class="chip" data-a="cerr" style="width:100%;margin:0 0 10px;color:var(--bad)">⚠ ${S.cerr.length} cambio(s) no se pasaron al Sheet · tocá para ver</button>`:''}<div class="stats">${st(c.h,'Vencen hoy','var(--warn)')}${st(c.v,'Vencidos','var(--bad)')}${st(free,'Disponibles','var(--ok)')}${st(cl,'Cuentas por cerrar','var(--mu)')}</div><input id="q" placeholder="Buscar por nombre, teléfono o servicio" value="${esc(q)}"><div class="chips">${[['v','Vencidos'],['h','Hoy'],['a','1 a 3 días'],['b','4 a 7 días']].map(([k,l])=>`<button class="chip ${f==k?'on':''}" data-a="f" data-k="${k}">${l}<b>${c[k]}</b></button>`).join('')}</div><div id="lst">${L.ven()}</div>`},
 cli(){return `<h1>Clientes</h1><p class="sub">${S.clients.length} en la base</p><input id="q" placeholder="Nombre, teléfono o servicio" value="${esc(q)}"><div class="chips">${[['on','Activos'],['all','Todos'],['off','De baja']].map(([k,l])=>`<button class="chip ${cf==k?'on':''}" data-a="cf" data-k="${k}">${l}</button>`).join('')}</div><div id="lst">${L.cli()}</div>`},
-pag(){const ps=pagosF(),tot=ps.reduce((s,p)=>s+p.amt,0),un=ps.filter(p=>!p.used).length;
+pag(){const ps=pagosF(),tot=ps.reduce((s,p)=>s+p.amt,0),un=ps.filter(p=>!p.used&&!p.arch).length;
 return `<h1>Pagos</h1><p class="sub">Transferencias recibidas</p><div class="chips">${[['s7','Últimos 7 días'],['mes','Este mes'],['todo','Todos']].map(([k,l])=>`<button class="chip ${pf==k?'on':''}" data-a="pf" data-k="${k}">${l}</button>`).join('')}</div><div class="stats" style="grid-template-columns:repeat(3,1fr)">${st(tot.toLocaleString('es-PY'),'Total','var(--tx)')}${st(ps.length,'Transferencias','var(--tx)')}${st(un,'Sin usar','var(--warn)')}</div><button class="big" data-a="load" ${loading?'disabled':''}>${loading?'Actualizando…':'Actualizar'}</button><input id="q" placeholder="Buscar por nombre o banco" value="${esc(q)}"><div id="lst">${L.pag()}</div>`},
 cue(){return `<h1>Cuentas</h1><p class="sub">Toca un servicio para ver sus cuentas</p><button class="big" data-a="acct" data-id="0">Agregar cuenta</button><input id="q" placeholder="Buscar por correo o servicio" value="${esc(q)}"><div id="lst">${L.cue()}</div>`},
 nue(){return `<h1>Nuevo cliente</h1><p class="sub">Registra una venta</p><label for="fn">Nombre</label><input id="fn" autocomplete="off"><label for="ft">WhatsApp (con código de país)</label><input id="ft" inputmode="tel" placeholder="595981123456"><datalist id="svl">${SVC.map(s=>`<option value="${esc(s)}">`).join('')}</datalist><div id="svs">${blk(true)}</div><button class="chip" data-a="addsv" style="margin:8px 0 12px">+ Agregar otro servicio</button><button class="big" data-a="save">Guardar cliente</button>`}};
@@ -255,6 +258,7 @@ else if(a=='renew'){renew(id);render()}
 else if(a=='load')load();
 else if(a=='use'){use(id,b.dataset.c);$('#sheet').hidden=true}
 else if(a=='pickopen')pickOpen(id);
+else if(a=='arch'||a=='unarch'){const p=S.pays.find(x=>x.id==id);if(p){p.arch=a=='arch';sb.from('pagos').update({archivado:p.arch}).eq('id',p.id).then(dbErr);render();toast(p.arch?'Marcado como registrado (no se cambió ninguna fecha)':'Listo, vuelve a estar sin usar')}}
 else if(a=='pf'){pf=b.dataset.k;render()}
 else if(a=='save')add();
 else if(a=='login')doLogin();
@@ -282,7 +286,7 @@ else if(a=='logout'){if(bioId()){S.clients=[];S.accts=[];$('#lock').hidden=false
 function fillAcc(b){const sel=b.querySelector('.sv-c'),sv=b.querySelector('.sv-s').value.trim().toLowerCase();if(!sel)return;
 sel.innerHTML='<option value="">Sin cuenta por ahora</option>'+S.accts.filter(a=>String(a.svc).toLowerCase()==sv&&a.cap-a.used>0).map(a=>`<option value="${a.id}">${esc(a.m)} · ${a.cap-a.used} libre${a.cap-a.used>1?'s':''}</option>`).join('')}
 document.addEventListener('input',e=>{if(e.target.id=='q'){q=e.target.value;$('#lst').innerHTML=L[tab]()}else if(e.target.id=='pq')$('#pl').innerHTML=pickList(pickPid,e.target.value);else if(e.target.classList&&e.target.classList.contains('sv-s'))fillAcc(e.target.closest('.svb'))});
-document.addEventListener('change',e=>{if(e.target.classList&&e.target.classList.contains('sv-s'))fillAcc(e.target.closest('.svb'))});
+document.addEventListener('change',e=>{if(e.target.classList&&e.target.classList.contains('sv-s')){const b=e.target.closest('.svb');if(PRE[e.target.value])b.querySelector('.sv-p').value=PRE[e.target.value];fillAcc(b)}});
 document.addEventListener('change',e=>{if(e.target.id=='as'){const o=$('#as2');o.hidden=e.target.value!='__otro';if(!o.hidden)o.focus()}
 if(e.target.dataset.a=='pick'&&e.target.value)use(e.target.dataset.id,e.target.value)});
 render();
