@@ -98,7 +98,7 @@ let S={clients:[],pays:[],accts:[]};
 const save=()=>{};
 const isoD=t=>{const d=new Date(t);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
 const dbErr=r=>{if(r&&r.error)toast('Error: '+r.error.message)};
-const APP_VER='202611051509';   // al subir una versión nueva, la app abierta en el celular se recarga sola
+const APP_VER='202611051524';   // al subir una versión nueva, la app abierta en el celular se recarga sola
 async function verNueva(){try{const r=await fetch(location.pathname+'?chk='+Date.now(),{cache:'no-store'});const t=await r.text();const m=t.match(/APP_VER='(\d+)'/);if(m&&m[1]!==APP_VER)location.replace(location.pathname+'?v='+m[1])}catch(e){}}
 verNueva();document.addEventListener('visibilitychange',()=>{if(!document.hidden)verNueva()});
 const enq=(tipo,datos)=>sb.from('cambios').insert({tipo,datos}).then(r=>{if(r.error)toast('No se pudo anotar el cambio para el Sheet: '+r.error.message)});
@@ -201,6 +201,7 @@ async function blqOpen(){const r=await sb.from('ajustes').select('valor').eq('cl
 $('#sheet').innerHTML=`<div class="pane"><h1 style="font-size:20px">🚫 Bloqueados del bot</h1><p class="sub">A estos números el bot nunca les responde (13, 14, 15, agente…). Uno por línea: un número (0981 123 456) o el nombre exacto como lo tenés en tu agenda.</p><textarea id="blq" rows="8" style="width:100%;box-sizing:border-box;font:inherit;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--card,transparent);color:var(--tx)" placeholder="0972 133 453&#10;0981 000 000&#10;Mamá">${esc(v)}</textarea><button class="big" style="margin-top:12px" data-a="blqsave">Guardar</button><button class="chip" style="width:100%;padding:11px" data-a="eclose">Cancelar</button></div>`;$('#sheet').hidden=false}
 async function blqSave(){const v=$('#blq').value.split('\n').map(x=>x.trim()).filter(Boolean).join(', ');const r=await sb.from('ajustes').upsert({clave:'bloqueados',valor:v});if(r.error){toast('No se pudo guardar: '+r.error.message);return}$('#sheet').hidden=true;toast(v?'Lista de bloqueados guardada':'Lista vacía: el bot responde a todos')}
 const EKUATIA='https://ekuatia.set.gov.py/ekuatiai/';
+const ekLink=()=>/android/i.test(navigator.userAgent)?'intent://ekuatia.set.gov.py/ekuatiai/#Intent;scheme=https;action=android.intent.action.VIEW;S.browser_fallback_url='+encodeURIComponent(EKUATIA)+';end':EKUATIA;
 function factOpen(cid,pid,aid){const av=aid?(S.avisos||[]).find(x=>x.id==aid):null,dd=(av&&av.datos)||{};let c=S.clients.find(x=>x.id==cid);
 if(!c&&av)c={n:dd.nombre||'',svc:'',p:0,tel:dd.tel||'',ruc:dd.ruc||'',rz:dd.nombre||'',fco:dd.correo||'',fci:dd.ciudad||''};if(!c){toast('No encontré el cliente');return}const p=pid?S.pays.find(x=>x.id==pid):null;
 const hoy=T.getTime(),fin=addMes(hoy),f=t=>{const d=new Date(t);return p2(d.getDate())+'/'+p2(d.getMonth()+1)+'/'+d.getFullYear()};
@@ -210,7 +211,9 @@ $('#sheet').innerHTML=`<div class="pane"><h1 style="font-size:20px">🧾 Datos p
 ${fl('fx_n','Nombre o razón social',nom)}${fl('fx_r','RUC o CI',ruc||'Consumidor final')}${fco?fl('fx_e','Correo electrónico',fco):''}${ftel?fl('fx_t','Teléfono',ftel):''}${fci?fl('fx_ci','Ciudad',fci):''}${fl('fx_c','Concepto',`Servicio de entretenimiento digital del ${f(hoy)} al ${f(fin)}`)}
 ${fl('fx_m','Monto total (Gs.)',String(monto))}${fl('fx_i','IVA 10% incluido (Gs.)',String(iva))}
 <p class="sub" style="font-size:12px">El IVA se calcula como 10% incluido en el precio. Confirmá con tu contador que sea el que corresponde.</p>
-<a class="big" style="display:block;text-align:center;text-decoration:none;margin-top:8px" href="${EKUATIA}" target="_blank" rel="noopener">Abrir e-Kuatia'i</a>
+<button class="chip" style="width:100%;padding:11px;margin-top:4px" data-a="copyall">📋 Copiar todos los datos juntos</button>
+<a class="big" style="display:block;text-align:center;text-decoration:none;margin-top:8px" href="${ekLink()}" target="_blank" rel="noopener">Abrir e-Kuatia'i en Chrome</a>
+<p class="sub" style="font-size:12px;text-align:center">Se abre afuera de la app. Para volver a ver los datos, cambiá de app con el botón de recientes ▢.</p>
 ${ftel?`<a class="chip" style="display:block;text-align:center;text-decoration:none;color:var(--ok);padding:11px;margin-top:8px" target="_blank" rel="noopener" href="https://api.whatsapp.com/send?phone=${ftel.replace(/^0/,'595')}&text=${encodeURIComponent('Hola '+c.n.trim().split(/\s+/)[0]+' 👋 Te paso tu factura 🧾 Muchas gracias por tu pago 🙌')}">📲 Abrir WhatsApp para mandarle la factura</a>`:''}
 ${p?`<button class="chip" style="width:100%;padding:11px;margin-top:8px" data-a="factok" data-p="${p.id}">✔ Ya la hice: marcar como facturado</button>`:''}
 <button class="chip" style="width:100%;padding:11px;margin-top:8px" data-a="eclose">Cerrar</button></div>`;$('#sheet').hidden=false}
@@ -289,6 +292,7 @@ else if(a=='load')load();
 else if(a=='use'){use(id,b.dataset.c);$('#sheet').hidden=true}
 else if(a=='pickopen')pickOpen(id);
 else if(a=='blq')blqOpen();
+else if(a=='copyall'){const t=[...document.querySelectorAll('#sheet input[readonly]')].map(i=>(i.closest('div').previousElementSibling||{}).textContent+': '+i.value).join('\n');navigator.clipboard.writeText(t).then(()=>toast('Copiado todo'),()=>toast('No se pudo copiar'))}
 else if(a=='fact')factOpen(b.dataset.c,b.dataset.p,b.dataset.av);
 else if(a=='factok'){const p=S.pays.find(x=>x.id==b.dataset.p);if(p){p.fact=true;sb.from('pagos').update({facturado:true}).eq('id',p.id).then(dbErr);$('#sheet').hidden=true;render();toast('Marcado como facturado')}}
 else if(a=='edel'){const c=S.clients.find(x=>x.id==id);if(c&&!c.on&&confirm(`¿Eliminar a ${c.n.trim()} (${c.svc})? Se borra de la app y, si su fila sigue en el Sheet, se vacía. No se puede deshacer.`)){enq('cancelar',{id:c.id,k:c.k,nombre:c.n,telefono:c.tel,servicio:c.svc,borrar:true});sb.from('clientes').delete().eq('id',c.id).then(r=>{if(r.error){dbErr(r);return}$('#sheet').hidden=true;toast('Cliente eliminado');pull()})}}
