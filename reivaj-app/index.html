@@ -98,16 +98,16 @@ let S={clients:[],pays:[],accts:[]};
 const save=()=>{};
 const isoD=t=>{const d=new Date(t);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
 const dbErr=r=>{if(r&&r.error)toast('Error: '+r.error.message)};
-const APP_VER='202611051454';   // al subir una versión nueva, la app abierta en el celular se recarga sola
+const APP_VER='202611051509';   // al subir una versión nueva, la app abierta en el celular se recarga sola
 async function verNueva(){try{const r=await fetch(location.pathname+'?chk='+Date.now(),{cache:'no-store'});const t=await r.text();const m=t.match(/APP_VER='(\d+)'/);if(m&&m[1]!==APP_VER)location.replace(location.pathname+'?v='+m[1])}catch(e){}}
 verNueva();document.addEventListener('visibilitychange',()=>{if(!document.hidden)verNueva()});
 const enq=(tipo,datos)=>sb.from('cambios').insert({tipo,datos}).then(r=>{if(r.error)toast('No se pudo anotar el cambio para el Sheet: '+r.error.message)});
 let accCl='';
-async function pull(){const [c,p,a,k,ce,hk,av]=await Promise.all([sb.from('clientes').select('*'),sb.from('pagos').select('*').order('id',{ascending:false}),sb.from('cuentas').select('*'),sb.from('credenciales').select('cuenta_id,clave'),sb.from('cambios').select('id,tipo,datos,error').eq('estado','error'),sb.from('ajustes').select('valor').eq('clave','hook').maybeSingle(),sb.from('avisos').select('id,creado,texto,mensaje').eq('visto',false).order('id',{ascending:false})]);S.avisos=av&&!av.error?(av.data||[]):[];S.cerr=ce&&!ce.error?(ce.data||[]):[];S.hook=(hk&&hk.data&&hk.data.valor)||S.hook||'';
+async function pull(){const [c,p,a,k,ce,hk,av]=await Promise.all([sb.from('clientes').select('*'),sb.from('pagos').select('*').order('id',{ascending:false}),sb.from('cuentas').select('*'),sb.from('credenciales').select('cuenta_id,clave'),sb.from('cambios').select('id,tipo,datos,error').eq('estado','error'),sb.from('ajustes').select('valor').eq('clave','hook').maybeSingle(),sb.from('avisos').select('id,creado,texto,mensaje,cliente_id,datos').eq('visto',false).order('id',{ascending:false})]);S.avisos=av&&!av.error?(av.data||[]):[];S.cerr=ce&&!ce.error?(ce.data||[]):[];S.hook=(hk&&hk.data&&hk.data.valor)||S.hook||'';
 S.cred={};(k.data||[]).forEach(r=>{S.cred[r.cuenta_id]=r.clave||''});
 const e=c.error||p.error||a.error;if(e){toast('Error: '+e.message);return}
-S.clients=c.data.map(r=>({id:r.id,n:r.nombre,tel:r.telefono,svc:r.servicio,p:r.precio,due:new Date(r.vence+'T00:00:00').getTime(),on:r.activo?1:0,mail:(r.correo||'').toLowerCase(),note:r.nota||'',perfil:r.perfil||'',pin:r.pin||'',k:r.clave_hoja||'',ct:r.contacto||''}));
-S.pays=p.data.map(r=>({id:r.id,n:r.remitente,amt:r.monto,bank:r.banco||'',t:r.hora||'',used:r.cliente_id||0,arch:!!r.archivado,f:new Date(r.fecha||r.creado).getTime()}));
+S.clients=c.data.map(r=>({id:r.id,n:r.nombre,tel:r.telefono,svc:r.servicio,p:r.precio,due:new Date(r.vence+'T00:00:00').getTime(),on:r.activo?1:0,mail:(r.correo||'').toLowerCase(),note:r.nota||'',perfil:r.perfil||'',pin:r.pin||'',k:r.clave_hoja||'',ct:r.contacto||'',ruc:r.ruc||'',rz:r.razon||'',fco:r.fact_correo||'',fci:r.fact_ciudad||''}));
+S.pays=p.data.map(r=>({id:r.id,n:r.remitente,amt:r.monto,bank:r.banco||'',t:r.hora||'',used:r.cliente_id||0,arch:!!r.archivado,fact:!!r.facturado,f:new Date(r.fecha||r.creado).getTime()}));
 S.accts=a.data.map(r=>({id:r.id,m:r.correo,svc:r.servicio,cap:r.capacidad,used:r.ocupados})).sort((x,y)=>x.svc.localeCompare(y.svc)||x.m.localeCompare(y.m));render()}
 async function edit(id){const c=S.clients.find(x=>x.id==id);if(!c)return;
 const ac=c.mail?S.accts.find(x=>String(x.m).trim().toLowerCase()==c.mail&&x.svc==c.svc):null;let cl='';
@@ -124,6 +124,11 @@ ${wad}</div>
 <label for="en">Nombre</label><input id="en" value="${esc(c.n)}">
 <label for="et">WhatsApp (con código de país)</label><input id="et" inputmode="tel" value="${esc(c.tel)}">
 <label for="es">Servicio</label><select id="es">${svOpts(c.svc)}</select>
+<label for="erz">Factura a nombre de (opcional)</label><input id="erz" value="${esc(c.rz||'')}" placeholder="Si lo dejás vacío se usa el nombre" autocomplete="off">
+<label for="eruc">RUC o CI para la factura (opcional)</label><input id="eruc" value="${esc(c.ruc||'')}" placeholder="Vacío = consumidor final" autocomplete="off">
+<label for="efco">Correo para la factura (opcional)</label><input id="efco" type="email" value="${esc(c.fco||'')}" autocomplete="off">
+<label for="efci">Ciudad (opcional)</label><input id="efci" value="${esc(c.fci||'')}" autocomplete="off">
+<button class="chip" style="width:100%;padding:10px;margin:2px 0 10px" data-a="fact" data-c="${c.id}">🧾 Facturar este servicio</button>
 <label for="ep">Precio que paga (Gs.)</label><input id="ep" type="number" inputmode="numeric" value="${c.p}">
 <label for="ed">Vence</label><input id="ed" type="date" value="${isoD(c.due)}">
 <label for="eno">Nota (ej: en qué cuenta de Netflix está)</label><input id="eno" value="${esc(c.note||'')}" autocomplete="off">
@@ -132,7 +137,7 @@ ${wad}</div>
 <button class="chip" style="width:100%;padding:11px" data-a="eclose">Cancelar</button></div>`;$('#sheet').hidden=false}
 async function esave(id){const v=i=>$('#'+i).value.trim();if(!v('en')||!v('ed')){toast('Completa nombre y fecha');return}
 const old=S.clients.find(x=>x.id==id),nv={nombre:v('en'),telefono:v('et').replace(/\D/g,''),servicio:v('es')||'Sin servicio',precio:+v('ep')||0,vence:v('ed'),perfil:v('epf'),pin:v('epn')};
-const r=await sb.from('clientes').update({nombre:nv.nombre,telefono:nv.telefono,servicio:nv.servicio,precio:nv.precio,vence:nv.vence,nota:v('eno')||null,perfil:nv.perfil||null,pin:nv.pin||null,activo:$('#ea').checked}).eq('id',id);
+const r=await sb.from('clientes').update({nombre:nv.nombre,telefono:nv.telefono,servicio:nv.servicio,precio:nv.precio,vence:nv.vence,nota:v('eno')||null,perfil:nv.perfil||null,pin:nv.pin||null,ruc:v('eruc')||null,razon:v('erz')||null,fact_correo:v('efco')||null,fact_ciudad:v('efci')||null,activo:$('#ea').checked}).eq('id',id);
 if(r.error){toast('Error: '+r.error.message);return}
 if(old){const ref={id:old.id,k:old.k,nombre:old.n,telefono:old.tel,servicio:old.svc};
 if(old.on&&!$('#ea').checked)enq('cancelar',ref);
@@ -195,6 +200,24 @@ return (eq.length?`<div class="sub" style="margin:6px 0">Pagan ${gs(p.amt)}</div
 async function blqOpen(){const r=await sb.from('ajustes').select('valor').eq('clave','bloqueados').maybeSingle();const v=String((r.data&&r.data.valor)||'').split(/[,;\n]/).map(x=>x.trim()).filter(Boolean).join('\n');
 $('#sheet').innerHTML=`<div class="pane"><h1 style="font-size:20px">🚫 Bloqueados del bot</h1><p class="sub">A estos números el bot nunca les responde (13, 14, 15, agente…). Uno por línea: un número (0981 123 456) o el nombre exacto como lo tenés en tu agenda.</p><textarea id="blq" rows="8" style="width:100%;box-sizing:border-box;font:inherit;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--card,transparent);color:var(--tx)" placeholder="0972 133 453&#10;0981 000 000&#10;Mamá">${esc(v)}</textarea><button class="big" style="margin-top:12px" data-a="blqsave">Guardar</button><button class="chip" style="width:100%;padding:11px" data-a="eclose">Cancelar</button></div>`;$('#sheet').hidden=false}
 async function blqSave(){const v=$('#blq').value.split('\n').map(x=>x.trim()).filter(Boolean).join(', ');const r=await sb.from('ajustes').upsert({clave:'bloqueados',valor:v});if(r.error){toast('No se pudo guardar: '+r.error.message);return}$('#sheet').hidden=true;toast(v?'Lista de bloqueados guardada':'Lista vacía: el bot responde a todos')}
+const EKUATIA='https://ekuatia.set.gov.py/ekuatiai/';
+function factOpen(cid,pid,aid){const av=aid?(S.avisos||[]).find(x=>x.id==aid):null,dd=(av&&av.datos)||{};let c=S.clients.find(x=>x.id==cid);
+if(!c&&av)c={n:dd.nombre||'',svc:'',p:0,tel:dd.tel||'',ruc:dd.ruc||'',rz:dd.nombre||'',fco:dd.correo||'',fci:dd.ciudad||''};if(!c){toast('No encontré el cliente');return}const p=pid?S.pays.find(x=>x.id==pid):null;
+const hoy=T.getTime(),fin=addMes(hoy),f=t=>{const d=new Date(t);return p2(d.getDate())+'/'+p2(d.getMonth()+1)+'/'+d.getFullYear()};
+const monto=p?p.amt:+c.p||0,iva=Math.round(monto/11),nom=(dd.nombre||c.rz||c.n).trim(),ruc=(dd.ruc||c.ruc||'').trim(),fco=(dd.correo||c.fco||'').trim(),fci=(dd.ciudad||c.fci||'').trim(),ftel=(dd.tel||c.tel||'').replace(/\D/g,'');
+const fl=(id2,lab,val)=>`<label for="${id2}">${lab}</label><div style="display:flex;gap:8px"><input id="${id2}" value="${esc(val)}" readonly><button class="chip" data-a="copy" data-t="${id2}" style="margin-bottom:10px">Copiar</button></div>`;
+$('#sheet').innerHTML=`<div class="pane"><h1 style="font-size:20px">🧾 Datos para la factura</h1><p class="sub">${esc(c.n.trim())}${c.svc?' · '+esc(c.svc):''}</p>
+${fl('fx_n','Nombre o razón social',nom)}${fl('fx_r','RUC o CI',ruc||'Consumidor final')}${fco?fl('fx_e','Correo electrónico',fco):''}${ftel?fl('fx_t','Teléfono',ftel):''}${fci?fl('fx_ci','Ciudad',fci):''}${fl('fx_c','Concepto',`Servicio de entretenimiento digital del ${f(hoy)} al ${f(fin)}`)}
+${fl('fx_m','Monto total (Gs.)',String(monto))}${fl('fx_i','IVA 10% incluido (Gs.)',String(iva))}
+<p class="sub" style="font-size:12px">El IVA se calcula como 10% incluido en el precio. Confirmá con tu contador que sea el que corresponde.</p>
+<a class="big" style="display:block;text-align:center;text-decoration:none;margin-top:8px" href="${EKUATIA}" target="_blank" rel="noopener">Abrir e-Kuatia'i</a>
+${ftel?`<a class="chip" style="display:block;text-align:center;text-decoration:none;color:var(--ok);padding:11px;margin-top:8px" target="_blank" rel="noopener" href="https://api.whatsapp.com/send?phone=${ftel.replace(/^0/,'595')}&text=${encodeURIComponent('Hola '+c.n.trim().split(/\s+/)[0]+' 👋 Te paso tu factura 🧾 Muchas gracias por tu pago 🙌')}">📲 Abrir WhatsApp para mandarle la factura</a>`:''}
+${p?`<button class="chip" style="width:100%;padding:11px;margin-top:8px" data-a="factok" data-p="${p.id}">✔ Ya la hice: marcar como facturado</button>`:''}
+<button class="chip" style="width:100%;padding:11px;margin-top:8px" data-a="eclose">Cerrar</button></div>`;$('#sheet').hidden=false}
+function avisosOpen(){const hora=t=>{const d=new Date(t);return p2(d.getDate())+'/'+p2(d.getMonth()+1)+' '+p2(d.getHours())+':'+p2(d.getMinutes())};
+$('#sheet').innerHTML=`<div class="pane"><h1 style="font-size:20px">🔔 Mensajes del bot</h1><div style="max-height:58vh;overflow:auto">${S.avisos.map(x=>{const c=x.cliente_id?S.clients.find(y=>y.id==x.cliente_id):null;
+return `<div style="border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0"><b style="font-size:14px">${esc(x.texto)}</b><div class="sub" style="font-size:12px;margin:4px 0">${hora(x.creado)}${x.mensaje?' · “'+esc(x.mensaje)+'”':''}</div>${c||x.datos?`<div style="display:flex;gap:8px;flex-wrap:wrap">${/^🧾/.test(x.texto)?`<button class="btn" data-a="fact" data-c="${c?c.id:''}" data-av="${x.id}">🧾 Preparar factura</button>`:''}${c?`<button class="chip" data-a="edit" data-id="${c.id}">Ver cliente</button>`:''}</div>`:''}</div>`}).join('')}</div>
+<button class="big" style="margin-top:10px" data-a="avok">Listo, marcar todos como vistos</button><button class="chip" style="width:100%;padding:11px;margin-top:8px" data-a="eclose">Cerrar</button></div>`;$('#sheet').hidden=false}
 function pickOpen(pid){pickPid=pid;const p=S.pays.find(x=>x.id==pid);if(!p)return;
 $('#sheet').innerHTML=`<div class="pane"><h1 style="font-size:20px">Asignar pago</h1><p class="sub">${esc(p.n)} · ${gs(p.amt)}</p><input id="pq" placeholder="Buscar cliente por nombre, teléfono o servicio" autocomplete="off"><div id="pl" style="max-height:48vh;overflow:auto;margin-top:8px">${pickList(pid,'')}</div><button class="chip" style="width:100%;padding:11px;margin-top:8px" data-a="eclose">Cancelar</button></div>`;$('#sheet').hidden=false;setTimeout(()=>{const e=$('#pq');e&&e.focus()},50)}
 function sug(p){const t=new Set(tok(p.n));let best=null,bs=0;act().forEach(c=>{const s=tok(c.n).filter(w=>t.has(w)).length;if(s>bs){bs=s;best=c}});return bs>=2?best:null}
@@ -244,7 +267,7 @@ return Object.keys(g).sort((x,y)=>x.localeCompare(y)).map(k=>{const l=g[k],free=
 return `<div class="sec"><button class="shd" data-a="sec" data-k="${esc(k)}" aria-expanded="${op}">${logo(k)}<b>${esc(k)}</b><span>${l.length} ${l.length==1?'cuenta':'cuentas'} · ${free} libres</span><i>${op?'▾':'▸'}</i></button>${op?l.map(row).join(''):''}</div>`}).join('')},
 pag(){const ps=pagosF();if(!ps.length)return '<div class="empty"><b>Sin transferencias</b>No hay transferencias en este período. Cuando llegue un correo del banco, aparece acá solo.</div>';
 return ps.map(p=>{const s=p.used||p.arch?null:sug(p);
-const r=p.used?`<span class="tag">Usada · ${esc((S.clients.find(c=>c.id==p.used)||{n:''}).n)}</span>`:p.arch?`<span class="tag">Registrado a mano</span> <button class="chip" data-a="unarch" data-id="${p.id}">Deshacer</button>`:`${s?`<button class="btn" data-a="use" data-id="${p.id}" data-c="${s.id}">Aplicar a ${esc(s.n.split(' ')[0])}</button> `:''}<button class="${s?'chip':'btn'}" data-a="pickopen" data-id="${p.id}">${s?'Otro cliente…':'Asignar a…'}</button> <button class="chip" data-a="arch" data-id="${p.id}" title="Ya renové a mano: no cambia ninguna fecha">Ya lo registré</button>`;
+const r=p.used?`<span class="tag">Usada · ${esc((S.clients.find(c=>c.id==p.used)||{n:''}).n)}</span> ${p.fact?'<span class="tag">🧾 Facturado</span>':`<button class="chip" data-a="fact" data-c="${p.used}" data-p="${p.id}">🧾 Facturar</button>`}`:p.arch?`<span class="tag">Registrado a mano</span> <button class="chip" data-a="unarch" data-id="${p.id}">Deshacer</button>`:`${s?`<button class="btn" data-a="use" data-id="${p.id}" data-c="${s.id}">Aplicar a ${esc(s.n.split(' ')[0])}</button> `:''}<button class="${s?'chip':'btn'}" data-a="pickopen" data-id="${p.id}">${s?'Otro cliente…':'Asignar a…'}</button> <button class="chip" data-a="arch" data-id="${p.id}" title="Ya renové a mano: no cambia ninguna fecha">Ya lo registré</button>`;
 return `<div class="row"><div class="info"><b>${esc(p.n)}</b><span>${p.t} · ${esc(p.bank)}</span><div style="margin-top:6px">${r}</div></div><div class="amt">${gs(p.amt)}</div></div>`}).join('')}};
 const V={
 ven(){const c=cnt(),free=S.accts.reduce((s,a)=>s+a.cap-a.used,0),cl=S.accts.filter(a=>!a.used).length;
@@ -266,6 +289,8 @@ else if(a=='load')load();
 else if(a=='use'){use(id,b.dataset.c);$('#sheet').hidden=true}
 else if(a=='pickopen')pickOpen(id);
 else if(a=='blq')blqOpen();
+else if(a=='fact')factOpen(b.dataset.c,b.dataset.p,b.dataset.av);
+else if(a=='factok'){const p=S.pays.find(x=>x.id==b.dataset.p);if(p){p.fact=true;sb.from('pagos').update({facturado:true}).eq('id',p.id).then(dbErr);$('#sheet').hidden=true;render();toast('Marcado como facturado')}}
 else if(a=='edel'){const c=S.clients.find(x=>x.id==id);if(c&&!c.on&&confirm(`¿Eliminar a ${c.n.trim()} (${c.svc})? Se borra de la app y, si su fila sigue en el Sheet, se vacía. No se puede deshacer.`)){enq('cancelar',{id:c.id,k:c.k,nombre:c.n,telefono:c.tel,servicio:c.svc,borrar:true});sb.from('clientes').delete().eq('id',c.id).then(r=>{if(r.error){dbErr(r);return}$('#sheet').hidden=true;toast('Cliente eliminado');pull()})}}
 else if(a=='delbaja'){const cs=S.clients.filter(c=>!c.on),ids=cs.map(c=>c.id);if(ids.length&&confirm(`¿Borrar los ${ids.length} clientes de baja? Se borran de la app y, si su fila sigue en el Sheet, se vacía. No se puede deshacer.`)){Promise.all(cs.map(c=>enq('cancelar',{id:c.id,k:c.k,nombre:c.n,telefono:c.tel,servicio:c.svc,borrar:true}))).then(()=>sb.from('clientes').delete().in('id',ids)).then(r=>{if(r&&r.error){dbErr(r);return}toast(ids.length+' clientes de baja borrados');pull()})}}
 else if(a=='blqsave')blqSave();
@@ -291,7 +316,8 @@ else if(a=='addsv'){$('#svs').insertAdjacentHTML('beforeend',blk(false))}
 else if(a=='rmsv'){b.closest('.svb').remove()}
 else if(a=='bio'){bioId()?bioOff():bioOn()}
 else if(a=='unlock')unlock();
-else if(a=='avisos'){alert(S.avisos.map(x=>'• '+x.texto+(x.mensaje?'\n   Mensaje: "'+x.mensaje+'"':'')).join('\n\n'));const ids=S.avisos.map(x=>x.id);sb.from('avisos').update({visto:true}).in('id',ids).then(()=>pull())}
+else if(a=='avisos')avisosOpen();
+else if(a=='avok'){const ids=S.avisos.map(x=>x.id);$('#sheet').hidden=true;sb.from('avisos').update({visto:true}).in('id',ids).then(()=>pull())}
 else if(a=='cerr'){alert(S.cerr.map(x=>((x.datos&&(x.datos.nombre||(x.datos.viejo&&x.datos.viejo.nombre)||x.datos.correo))||x.tipo)+': '+x.error).join('\n')+'\n\nCárgalo a mano en el Sheet. Este aviso se borra al cerrar.');sb.from('cambios').delete().eq('estado','error').then(()=>pull())}
 else if(a=='usepw'){bioOff();sb.auth.signOut().then(()=>{$('#lock').hidden=true;$('#login').hidden=false})}
 else if(a=='logout'){if(bioId()){S.clients=[];S.accts=[];$('#lock').hidden=false;return}sb.auth.signOut().then(()=>{S.clients=[];S.accts=[];$('#lp').value='';$('#login').hidden=false})}});
