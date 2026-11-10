@@ -85,9 +85,9 @@ const p2=n=>String(n).padStart(2,'0'),fd=t=>{const d=new Date(t);return p2(d.get
 const gs=n=>'Gs. '+Number(n).toLocaleString('es-PY');
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const tok=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z ]/g,' ').split(/\s+/).filter(w=>w.length>2);
-const PRE={'Netflix':30000,'Netflix Privado':40000,'Spotify':25000,'Prime Video (cuenta)':20000,'Paramount':20000,'Max':25000,'Crunchyroll':20000,'Disney+':35000,'Disney+ (cuenta)':35000,'Tigo Sports':40000,'MagisTv':60000};
+const PRE={'Netflix':30000,'Netflix Privado':40000,'Spotify':25000,'Prime Video (cuenta)':20000,'Paramount':20000,'Max':25000,'Crunchyroll':20000,'Disney+':35000,'Disney+ (cuenta)':35000,'Tigo Sports':40000,'MagisTv':60000,'Google One':30000};
 const svOpts=(cur)=>(cur&&!SVC.includes(cur)?`<option value="${esc(cur)}" selected>${esc(cur)} (no está en el Sheet)</option>`:'')+SVC.map(x=>`<option value="${esc(x)}" ${x==cur?'selected':''}>${esc(x)}</option>`).join('');
-const SVC=['Crunchyroll', 'Disney+', 'Disney+ (cuenta)', 'MagisTv', 'Max', 'Max (cuenta)', 'Netflix', 'Netflix Privado', 'Paramount', 'Paramount (cuenta)', 'Prime Video (cuenta)', 'Spotify', 'YouTube Premium','Tigo Sports'];
+const SVC=['Crunchyroll', 'Disney+', 'Disney+ (cuenta)', 'MagisTv', 'Max', 'Max (cuenta)', 'Netflix', 'Netflix Privado', 'Paramount', 'Paramount (cuenta)', 'Prime Video (cuenta)', 'Spotify', 'Google One','Tigo Sports'];
 const seed=()=>({id:30,
 clients:[['Ana Giménez','595981100001','Disney Premium',15000,0],['Carlos Duarte','595982100002','Tigo Sports',70000,0],['Lucía Benítez','595983100003','Netflix-Premium',30000,0],['Marcos Ríos','595984100004','Spotify',25000,3],['Sofía Acosta','595985100005','HBO Max',25000,9],['Julián Vera','595986100006','Netflix',30000,-2],['Mabel Cáceres','595971100007','Disney Premium',15000,-5],['Diego Fleitas','595972100008','Netflix-Premium',30000,2],['Rocío Salinas','595973100009','HBO Max',25000,6],['Hugo Samaniego','595974100010','Spotify',25000,15],['Elena Ortiz','595975100011','Tigo Sports',70000,1],['Pablo Insfrán','595976100012','Netflix',30000,22]].map((a,i)=>({id:i+1,n:a[0],tel:a[1],svc:a[2],p:a[3],due:ts(a[4]),on:1})).concat([{id:20,n:'Nadia Pereira',tel:'595977100013',svc:'Spotify',p:25000,due:ts(-40),on:0}]),
 pays:[],
@@ -98,7 +98,7 @@ let S={clients:[],pays:[],accts:[]};
 const save=()=>{};
 const isoD=t=>{const d=new Date(t);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
 const dbErr=r=>{if(r&&r.error)toast('Error: '+r.error.message)};
-const APP_VER='202611061021';   // al subir una versión nueva, la app abierta en el celular se recarga sola
+const APP_VER='202611101828';   // al subir una versión nueva, la app abierta en el celular se recarga sola
 async function verNueva(){try{const r=await fetch(location.pathname+'?chk='+Date.now(),{cache:'no-store'});const t=await r.text();const m=t.match(/APP_VER='(\d+)'/);if(m&&m[1]!==APP_VER)location.replace(location.pathname+'?v='+m[1])}catch(e){}}
 verNueva();document.addEventListener('visibilitychange',()=>{if(!document.hidden)verNueva()});
 const enq=(tipo,datos)=>sb.from('cambios').insert({tipo,datos}).then(r=>{if(r.error)toast('No se pudo anotar el cambio para el Sheet: '+r.error.message)});
@@ -259,7 +259,7 @@ if([...document.querySelectorAll('.sv-s')].some(x=>!x.value)){toast('Elegí el s
 const rows=[...document.querySelectorAll('.svb')].map(b=>{const sel=b.querySelector('.sv-c'),ac=sel&&sel.value?S.accts.find(x=>x.id==sel.value):null;return{s:b.querySelector('.sv-s').value.trim()||'Sin servicio',p:+b.querySelector('.sv-p').value||0,d:+b.querySelector('.sv-d').value||30,n:b.querySelector('.sv-n').value.trim(),m:ac?String(ac.m).trim().toLowerCase():'',cl:ac?(S.cred[ac.id]||''):''}});
 sb.from('clientes').insert(rows.map(x=>({nombre:n,telefono:t,servicio:x.s,precio:x.p,vence:isoD(ts(x.d)),nota:x.n||null,correo:x.m||null,activo:true}))).select('id').then(r=>{if(r.error){dbErr(r);return}
 (r.data||[]).forEach((row,i)=>enq('nuevo',{cliente_id:row.id,servicio:rows[i].s,nombre:n,telefono:t,precio:rows[i].p,vence:isoD(ts(rows[i].d)),correo:rows[i].m,clave:rows[i].cl}));tab='cli';cf='on';q='';toast(rows.length>1?rows.length+' servicios guardados':'Cliente guardado');pull()})}
-const LOGOS=[['netflix','N','#e50914'],['max','max','#002be7'],['hbo','max','#002be7'],['prime','prime','#00a8e1'],['disney','D+','#113ccf'],['paramount','P','#0064ff'],['youtube','▶','#ff0000'],['spotify','S','#1db954'],['crunchy','C','#f47521'],['magis','M','#f26b21'],['tigo','T','#00377b']];
+const LOGOS=[['netflix','N','#e50914'],['max','max','#002be7'],['hbo','max','#002be7'],['prime','prime','#00a8e1'],['disney','D+','#113ccf'],['paramount','P','#0064ff'],['youtube','▶','#ff0000'],['google','G','#4285f4'],['spotify','S','#1db954'],['crunchy','C','#f47521'],['magis','M','#f26b21'],['tigo','T','#00377b']];
 function logo(n){const l=String(n).toLowerCase(),m=LOGOS.find(x=>l.includes(x[0]));if(!m)return `<span class="lg" style="background:var(--mu)">${esc(String(n).slice(0,1).toUpperCase())}</span>`;return `<span class="lg" style="background:${m[2]}">${m[1]}<img src="icons/svc/${m[0]}.png" alt="" onerror="this.remove()"></span>`}
 const B64=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const UB=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
