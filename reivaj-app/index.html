@@ -98,7 +98,7 @@ let S={clients:[],pays:[],accts:[]};
 const save=()=>{};
 const isoD=t=>{const d=new Date(t);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
 const dbErr=r=>{if(r&&r.error)toast('Error: '+r.error.message)};
-const APP_VER='202611101828';   // al subir una versión nueva, la app abierta en el celular se recarga sola
+const APP_VER='202611132012';   // al subir una versión nueva, la app abierta en el celular se recarga sola
 async function verNueva(){try{const r=await fetch(location.pathname+'?chk='+Date.now(),{cache:'no-store'});const t=await r.text();const m=t.match(/APP_VER='(\d+)'/);if(m&&m[1]!==APP_VER)location.replace(location.pathname+'?v='+m[1])}catch(e){}}
 verNueva();document.addEventListener('visibilitychange',()=>{if(!document.hidden)verNueva()});
 const enq=(tipo,datos)=>sb.from('cambios').insert({tipo,datos}).then(r=>{if(r.error)toast('No se pudo anotar el cambio para el Sheet: '+r.error.message)});
@@ -128,7 +128,7 @@ ${wad}</div>
 <label for="eruc">RUC o CI para la factura (opcional)</label><input id="eruc" value="${esc(c.ruc||'')}" placeholder="Vacío = consumidor final" autocomplete="off">
 <label for="efco">Correo para la factura (opcional)</label><input id="efco" type="email" value="${esc(c.fco||'')}" autocomplete="off">
 <label for="efci">Ciudad (opcional)</label><input id="efci" value="${esc(c.fci||'')}" autocomplete="off">
-<button class="chip" style="width:100%;padding:10px;margin:2px 0 10px" data-a="fact" data-c="${c.id}">🧾 Facturar este servicio</button>
+${c.on?`<button class="chip" style="width:100%;padding:10px;margin:2px 0 6px" data-a="erenew" data-id="${c.id}">↻ Renovar 1 mes (hasta el ${fd(addMes(c.due))})</button>`:''}<button class="chip" style="width:100%;padding:10px;margin:2px 0 10px" data-a="fact" data-c="${c.id}">🧾 Facturar este servicio</button>
 <label for="ep">Precio que paga (Gs.)</label><input id="ep" type="number" inputmode="numeric" value="${c.p}">
 <label for="ed">Vence</label><input id="ed" type="date" value="${isoD(c.due)}">
 <label for="eno">Nota (ej: en qué cuenta de Netflix está)</label><input id="eno" value="${esc(c.note||'')}" autocomplete="off">
@@ -285,7 +285,7 @@ const L={
 ven(){const a=act().filter(c=>rg[f](dd(c.due))&&hit(c)).sort((x,y)=>x.due-y.due);
 return a.length?a.map(c=>{const d=dd(c.due);return `<div class="row"><div class="bd" style="background:${col(d)}">${Math.abs(d)}<small>${d==0?'hoy':d<0?'atraso':'días'}</small></div><div class="info" data-a="edit" data-id="${c.id}"><b>${esc(c.n)}</b><span>${esc(c.svc)}</span><span>Vence ${fd(c.due)} · ${gs(c.p)}</span>${extra(c)}</div><div class="act">${cancelBtn(c,d)}${keyBtn(c)}<a href="${wa(c)}" target="_blank" rel="noopener" title="Avisar por WhatsApp" aria-label="Avisar a ${esc(c.n)} por WhatsApp">${WAI}</a><button data-a="renew" data-id="${c.id}" title="Renovar 30 días" aria-label="Renovar a ${esc(c.n)}">↻</button></div></div>`}).join(''):'<div class="empty"><b>Nada en este rango</b>Prueba con otro filtro.</div>'},
 cli(){const a=S.clients.filter(c=>(cf=='all'||(cf=='on'?c.on:!c.on))&&hit(c)).sort((x,y)=>x.due-y.due);
-return a.length?a.map(c=>{const d=dd(c.due);return `<div class="row"><div class="bd" style="background:${c.on?col(d):'var(--mu)'}">${c.on?d:'—'}<small>${c.on?'días':'baja'}</small></div><div class="info" data-a="edit" data-id="${c.id}"><b>${esc(c.n)}</b><span>${esc(c.svc)}</span><span>Vence ${fd(c.due)} · ${gs(c.p)}</span>${extra(c)}</div><div class="act">${cancelBtn(c,d)}${keyBtn(c)}<a href="${wa(c)}" target="_blank" rel="noopener" aria-label="WhatsApp a ${esc(c.n)}">${WAI}</a></div></div>`}).join(''):'<div class="empty"><b>Sin resultados</b>Cambia la búsqueda o el filtro.</div>'},
+return a.length?a.map(c=>{const d=dd(c.due);return `<div class="row"><div class="bd" style="background:${c.on?col(d):'var(--mu)'}">${c.on?d:'—'}<small>${c.on?'días':'baja'}</small></div><div class="info" data-a="edit" data-id="${c.id}"><b>${esc(c.n)}</b><span>${esc(c.svc)}</span><span>Vence ${fd(c.due)} · ${gs(c.p)}</span>${extra(c)}</div><div class="act">${cancelBtn(c,d)}${keyBtn(c)}<a href="${wa(c)}" target="_blank" rel="noopener" aria-label="WhatsApp a ${esc(c.n)}">${WAI}</a>${c.on?`<button data-a="renew" data-id="${c.id}" title="Renovar 1 mes" aria-label="Renovar a ${esc(c.n)}">↻</button>`:''}</div></div>`}).join(''):'<div class="empty"><b>Sin resultados</b>Cambia la búsqueda o el filtro.</div>'},
 cue(){const a=S.accts.filter(x=>!q||(x.m+' '+x.svc).toLowerCase().includes(q.toLowerCase()));
 if(!a.length)return '<div class="empty"><b>Sin cuentas</b>Agrega una con el botón de arriba.</div>';
 const row=a=>`<div class="row"><div class="info" data-a="acct" data-id="${a.id}"><b>${esc(a.m)}</b><span>${a.used} de ${a.cap} perfiles ocupados</span><div class="bar"><i style="width:${a.cap?Math.min(100,a.used/a.cap*100):0}%"></i></div></div><span class="amt" style="color:${a.cap-a.used>0?'var(--ok)':'var(--mu)'}">${a.cap-a.used} libres</span></div>`;
@@ -316,7 +316,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b
 if(a=='tab'){tab=b.dataset.k;q='';render()}
 else if(a=='f'){f=b.dataset.k;render()}
 else if(a=='cf'){cf=b.dataset.k;render()}
-else if(a=='renew'){renew(id);render()}
+else if(a=='renew'||a=='erenew'){const c=S.clients.find(x=>x.id==id);if(!c)return;if(dd(c.due)>3&&!confirm(`¿Renovar a ${c.n.trim()} (${c.svc})?\nVence el ${fd(c.due)} → pasa al ${fd(addMes(c.due))}`))return;renew(id);if(a=='erenew')$('#sheet').hidden=true;render()}
 else if(a=='load')load();
 else if(a=='use'){use(id,b.dataset.c);$('#sheet').hidden=true}
 else if(a=='pickopen')pickOpen(id);
