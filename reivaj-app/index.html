@@ -98,7 +98,7 @@ let S={clients:[],pays:[],accts:[]};
 const save=()=>{};
 const isoD=t=>{const d=new Date(t);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
 const dbErr=r=>{if(r&&r.error)toast('Error: '+r.error.message)};
-const APP_VER='202611132012';   // al subir una versión nueva, la app abierta en el celular se recarga sola
+const APP_VER='202611201118';   // al subir una versión nueva, la app abierta en el celular se recarga sola
 async function verNueva(){try{const r=await fetch(location.pathname+'?chk='+Date.now(),{cache:'no-store'});const t=await r.text();const m=t.match(/APP_VER='(\d+)'/);if(m&&m[1]!==APP_VER)location.replace(location.pathname+'?v='+m[1])}catch(e){}}
 verNueva();document.addEventListener('visibilitychange',()=>{if(!document.hidden)verNueva()});
 const enq=(tipo,datos)=>sb.from('cambios').insert({tipo,datos}).then(r=>{if(r.error)toast('No se pudo anotar el cambio para el Sheet: '+r.error.message)});
@@ -108,7 +108,8 @@ S.cred={};(k.data||[]).forEach(r=>{S.cred[r.cuenta_id]=r.clave||''});
 const e=c.error||p.error||a.error;if(e){toast('Error: '+e.message);return}
 S.clients=c.data.map(r=>({id:r.id,n:r.nombre,tel:r.telefono,svc:r.servicio,p:r.precio,due:new Date(r.vence+'T00:00:00').getTime(),on:r.activo?1:0,mail:(r.correo||'').toLowerCase(),note:r.nota||'',perfil:r.perfil||'',pin:r.pin||'',k:r.clave_hoja||'',ct:r.contacto||'',ruc:r.ruc||'',rz:r.razon||'',fco:r.fact_correo||'',fci:r.fact_ciudad||''}));
 S.pays=p.data.map(r=>({id:r.id,n:r.remitente,amt:r.monto,bank:r.banco||'',t:r.hora||'',used:r.cliente_id||0,arch:!!r.archivado,fact:!!r.facturado,f:new Date(r.fecha||r.creado).getTime(),out:r.tipo=='salida',cat:r.categoria||'',nota:r.nota||'',man:!!r.manual}));
-S.accts=a.data.map(r=>({id:r.id,m:r.correo,svc:r.servicio,cap:r.capacidad,used:r.ocupados})).sort((x,y)=>x.svc.localeCompare(y.svc)||x.m.localeCompare(y.m));render()}
+S.accts=a.data.map(r=>({id:r.id,m:r.correo,svc:r.servicio,cap:r.capacidad,used:r.ocupados})).sort((x,y)=>x.svc.localeCompare(y.svc)||x.m.localeCompare(y.m));await loadCup();render()}
+async function loadCup(){const r=await sb.from('cupones').select('id,numero,cliente_id,nombre,telefono,servicio,motivo,creado,anulado').order('numero');S.cup=r.error?null:(r.data||[])}
 async function edit(id){const c=S.clients.find(x=>x.id==id);if(!c)return;
 const ac=c.mail?S.accts.find(x=>String(x.m).trim().toLowerCase()==c.mail&&x.svc==c.svc):null;let cl='';
 if(ac){const r=await sb.from('credenciales').select('clave').eq('cuenta_id',ac.id).maybeSingle();cl=(r.data&&r.data.clave)||''}
@@ -128,7 +129,7 @@ ${wad}</div>
 <label for="eruc">RUC o CI para la factura (opcional)</label><input id="eruc" value="${esc(c.ruc||'')}" placeholder="Vacío = consumidor final" autocomplete="off">
 <label for="efco">Correo para la factura (opcional)</label><input id="efco" type="email" value="${esc(c.fco||'')}" autocomplete="off">
 <label for="efci">Ciudad (opcional)</label><input id="efci" value="${esc(c.fci||'')}" autocomplete="off">
-${c.on?`<button class="chip" style="width:100%;padding:10px;margin:2px 0 6px" data-a="erenew" data-id="${c.id}">↻ Renovar 1 mes (hasta el ${fd(addMes(c.due))})</button>`:''}<button class="chip" style="width:100%;padding:10px;margin:2px 0 10px" data-a="fact" data-c="${c.id}">🧾 Facturar este servicio</button>
+${(S.cup||[]).some(x=>x.cliente_id==c.id&&!x.anulado)?`<p class="sub" style="margin:4px 0 8px">🎟 Cupones para el sorteo: ${(S.cup||[]).filter(x=>x.cliente_id==c.id&&!x.anulado).map(x=>'<b>#'+x.numero+'</b>').join(', ')}</p>`:''}${c.on?`<button class="chip" style="width:100%;padding:10px;margin:2px 0 6px" data-a="erenew" data-id="${c.id}">↻ Renovar 1 mes (hasta el ${fd(addMes(c.due))})</button>`:''}<button class="chip" style="width:100%;padding:10px;margin:2px 0 10px" data-a="fact" data-c="${c.id}">🧾 Facturar este servicio</button>
 <label for="ep">Precio que paga (Gs.)</label><input id="ep" type="number" inputmode="numeric" value="${c.p}">
 <label for="ed">Vence</label><input id="ed" type="date" value="${isoD(c.due)}">
 <label for="eno">Nota (ej: en qué cuenta de Netflix está)</label><input id="eno" value="${esc(c.note||'')}" autocomplete="off">
@@ -189,7 +190,7 @@ const wa=c=>`https://api.whatsapp.com/send?phone=${c.tel.replace(/\D/g,'')}&text
 const WAI='<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 5 5.1-1.3A10 10 0 1 0 12 2zm5.2 13.9c-.2.6-1.300 1.200-1.800 1.200-.5.1-1 .2-3.300-.7-2.800-1.200-4.600-4-4.700-4.200-.1-.2-1.100-1.500-1.100-2.800s.7-2 1-2.300c.2-.3.500-.3.700-.3h.5c.2 0 .4 0 .6.500l.8 2c.1.2.1.4 0 .6l-.4.600c-.1.200-.3.300-.1.600.2.300.8 1.300 1.700 2.100 1.100 1 2.100 1.300 2.400 1.400.3.100.5.100.7-.1l.9-1.100c.2-.3.400-.2.700-.1l1.900.9c.3.1.5.200.5.3.1.100.1.600-.1 1.100z"/></svg>';
 function st(n,l,c){return `<div><b style="color:${c}">${n}</b><small>${l}</small></div>`}
 const addMes=t=>{const d=new Date(t),y=d.getFullYear(),m=d.getMonth()+1,ult=new Date(y,m+1,0).getDate();return new Date(y,m,Math.min(d.getDate(),ult)).getTime()};   // 4 nov -> 4 dic (aunque pague tarde)
-function renew(id){const c=S.clients.find(x=>x.id==id);c.due=addMes(c.due);toast(`${c.n}: renovado hasta el ${fd(c.due)}`);sb.from('clientes').update({vence:isoD(c.due)}).eq('id',c.id).then(dbErr);enq('editar',{id:c.id,k:c.k,viejo:{nombre:c.n,telefono:c.tel,servicio:c.svc},nuevo:{vence:isoD(c.due)}})}
+function renew(id){const c=S.clients.find(x=>x.id==id);c.due=addMes(c.due);toast(`${c.n}: renovado hasta el ${fd(c.due)}`);sb.from('clientes').update({vence:isoD(c.due)}).eq('id',c.id).then(async r=>{dbErr(r);await loadCup();if(!$('#sheet').hidden&&$('#sorteo'))sortOpen();else if($('#sheet').hidden)render()});enq('editar',{id:c.id,k:c.k,viejo:{nombre:c.n,telefono:c.tel,servicio:c.svc},nuevo:{vence:isoD(c.due)}})}
 function pagosF(){const t0=T.getTime(),m=new Date(t0);return S.pays.filter(p=>{if(pt=='in'&&p.out||pt=='out'&&!p.out)return false;if(q&&!(p.n+p.bank+p.nota).toLowerCase().includes(q.toLowerCase()))return false;
 if(pf=='s7')return p.f>=t0-6*DAY;if(pf=='mes'){const d=new Date(p.f);return d.getMonth()==m.getMonth()&&d.getFullYear()==m.getFullYear()}return true}).sort((x,y)=>(y.f||0)-(x.f||0)||y.id-x.id)}
 function pickList(pid,qq){const p=S.pays.find(x=>x.id==pid);if(!p)return '';const w=tok(qq||'');
@@ -221,6 +222,40 @@ function avisosOpen(){const hora=t=>{const d=new Date(t);return p2(d.getDate())+
 $('#sheet').innerHTML=`<div class="pane"><h1 style="font-size:20px">🔔 Mensajes del bot</h1><div style="max-height:58vh;overflow:auto">${S.avisos.map(x=>{const c=x.cliente_id?S.clients.find(y=>y.id==x.cliente_id):null;
 return `<div style="border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0"><b style="font-size:14px">${esc(x.texto)}</b><div class="sub" style="font-size:12px;margin:4px 0">${hora(x.creado)}${x.mensaje?' · “'+esc(x.mensaje)+'”':''}</div>${c||x.datos?`<div style="display:flex;gap:8px;flex-wrap:wrap">${/^🧾/.test(x.texto)?`<button class="btn" data-a="fact" data-c="${c?c.id:''}" data-av="${x.id}">🧾 Preparar factura</button>`:''}${c?`<button class="chip" data-a="edit" data-id="${c.id}">Ver cliente</button>`:''}</div>`:''}</div>`}).join('')}</div>
 <button class="big" style="margin-top:10px" data-a="avok">Listo, marcar todos como vistos</button><button class="chip" style="width:100%;padding:11px;margin-top:8px" data-a="eclose">Cerrar</button></div>`;$('#sheet').hidden=false}
+let sq='',ganadores=[];
+const quienCup=x=>{const t=String(x.telefono||'').replace(/\D/g,'').slice(-8);if(t)return 't'+t;const c=S.clients.find(y=>y.id==x.cliente_id);return 'n'+String((c&&(c.ct||c.n))||x.nombre||'').trim().toLowerCase()};
+function sortOpen(){const v=(S.cup||[]).filter(x=>!x.anulado),grupos={};
+(S.cup||[]).forEach(x=>{const k=quienCup(x);(grupos[k]=grupos[k]||{k,n:x.nombre||'',tel:x.telefono||'',l:[]}).l.push(x)});
+let gs2=Object.values(grupos).filter(g=>!sq||(g.n+' '+g.tel+' '+g.l.map(x=>x.servicio+' #'+x.numero).join(' ')).toLowerCase().includes(sq.toLowerCase()));
+gs2.sort((a,b)=>b.l.filter(x=>!x.anulado).length-a.l.filter(x=>!x.anulado).length||a.n.localeCompare(b.n));
+const nPers=new Set(v.map(quienCup)).size;
+$('#sheet').innerHTML=`<div class="pane" id="sorteo"><h1 style="font-size:22px">🎟 Sorteo de fin de año</h1><p class="sub">1 cupón por cada pago o renovación (desde el 20/11). Los cupones se crean solos.</p>
+<div class="stats" style="grid-template-columns:repeat(2,1fr)">${st(v.length,'Cupones','var(--tx)')}${st(nPers,'Participantes','var(--tx)')}</div>
+${ganadores.map((g,i)=>`<div style="border:2px solid var(--ac);border-radius:14px;padding:12px;margin-bottom:10px;background:var(--hl)"><div class="sub" style="margin:0">🏆 Ganador ${i+1}</div><div style="font-size:22px;font-weight:800">Cupón #${g.numero}</div><div><b>${esc(g.nombre||'')}</b> · ${esc(g.servicio||'')}</div>${g.telefono?`<a class="chip" style="display:inline-block;margin-top:8px;text-decoration:none;color:var(--ok)" target="_blank" rel="noopener" href="https://api.whatsapp.com/send?phone=${String(g.telefono).replace(/\D/g,'').replace(/^0/,'595')}&text=${encodeURIComponent('🎉 ¡Felicidades! Tu cupón #'+g.numero+' salió ganador en el sorteo de fin de año de Servicios Reivaj 🎁')}">📲 Avisarle por WhatsApp</a>`:''}</div>`).join('')}
+<button class="big" data-a="sortear" ${v.length?'':'disabled'}>🎲 ${ganadores.length?'Sortear otro ganador':'Sortear ganador'}</button>${ganadores.length?`<button class="chip" style="width:100%;padding:10px;margin-top:6px" data-a="sortreset">Borrar ganadores de la pantalla</button>`:''}
+<button class="chip" style="width:100%;padding:11px;margin-top:8px" data-a="cupadd">➕ Agregar cupón a mano</button>
+<input id="sq" placeholder="Buscar cliente o número de cupón" value="${esc(sq)}" style="margin-top:12px" autocomplete="off">
+<div>${gs2.map(g=>{const a=g.l.filter(x=>!x.anulado).length;return `<div class="row" style="display:block"><div><b>${esc(g.n)}</b> <span class="sub">· ${a} ${a==1?'cupón':'cupones'}</span></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${g.l.map(x=>`<button class="chip" data-a="cupx" data-id="${x.id}" title="${esc((x.servicio||'')+' · '+(x.motivo||'')+' · '+new Date(x.creado).toLocaleDateString('es-PY'))}" style="${x.anulado?'text-decoration:line-through;opacity:.5':''}">#${x.numero} ${esc(x.servicio||'')}</button>`).join('')}</div></div>`}).join('')||'<div class="empty"><b>Todavía no hay cupones</b>Se crean solos cada vez que un cliente renueva o compra un servicio.</div>'}</div>
+<p class="sub" style="font-size:12px">Tocá un cupón para anularlo (o volver a activarlo).</p>
+<button class="chip" style="width:100%;padding:11px" data-a="eclose">Cerrar</button></div>`;$('#sheet').hidden=false}
+function cupAddOpen(){const vis=new Set(),ops=[];
+S.clients.slice().sort((a,b)=>(b.on-a.on)||String(a.ct||a.n).localeCompare(String(b.ct||b.n))).forEach(c=>{const t=String(c.tel||'').replace(/\D/g,'').slice(-8),k=t||c.n;if(vis.has(k))return;vis.add(k);ops.push(`${String(c.ct||c.n).trim()} — ${c.tel||'sin número'}`)});
+$('#sheet').innerHTML=`<div class="pane"><h1 style="font-size:20px">➕ Agregar cupón a mano</h1><p class="sub">Para ventas que no pasan por la app (productos, combos, etc.).</p>
+<label for="ca_n">Cliente</label><input id="ca_n" list="ca_l" placeholder="Escribí el nombre y elegí de la lista" autocomplete="off"><datalist id="ca_l">${ops.map(o=>`<option value="${esc(o)}">`).join('')}</datalist>
+<label for="ca_t">Teléfono (si no está en la lista)</label><input id="ca_t" inputmode="tel" placeholder="0981 123 456" autocomplete="off">
+<label for="ca_p">¿Qué compró?</label><input id="ca_p" placeholder="Ej: Combo Netflix + Disney, recarga, producto…" autocomplete="off">
+<label for="ca_c">Cantidad de cupones</label><input id="ca_c" type="number" min="1" max="20" value="1">
+<button class="big" style="margin-top:12px" data-a="cupsave">Agregar</button><button class="chip" style="width:100%;padding:11px" data-a="sorteo">Volver</button></div>`;$('#sheet').hidden=false}
+async function cupSave(){const v=$('#ca_n').value.trim(),prod=$('#ca_p').value.trim(),n=Math.min(20,Math.max(1,parseInt($('#ca_c').value)||1));
+if(!v){toast('Poné el nombre del cliente');return}if(!prod){toast('Poné qué compró');return}
+const m=v.match(/^(.*) — (.*)$/);let nombre=v,tel=$('#ca_t').value.trim(),cid=null;
+if(m){nombre=m[1].trim();const t8=m[2].replace(/\D/g,'').slice(-8);const c=S.clients.filter(c=>t8?String(c.tel||'').replace(/\D/g,'').slice(-8)==t8:String(c.ct||c.n).trim()==nombre).sort((a,b)=>b.on-a.on)[0];if(c){cid=c.id;tel=c.tel||tel}}
+const filas=Array.from({length:n},()=>({cliente_id:cid,nombre,telefono:tel||null,servicio:prod,motivo:'a mano'}));
+const r=await sb.from('cupones').insert(filas).select('numero');if(r.error){toast('No se pudo guardar: '+r.error.message);return}
+await loadCup();toast(`${nombre}: ${n==1?'cupón':'cupones'} ${(r.data||[]).map(x=>'#'+x.numero).join(', ')}`);sq='';sortOpen()}
+function sortear(){const ya=new Set(ganadores.map(quienCup)),pool=(S.cup||[]).filter(x=>!x.anulado&&!ya.has(quienCup(x)));
+if(!pool.length){toast('No quedan cupones de otros participantes');return}
+const r=new Uint32Array(1);crypto.getRandomValues(r);ganadores.push(pool[r[0]%pool.length]);sortOpen();$('#sheet').scrollTop=0}
 const CATS={plataforma:'🎬 Plataforma',personal:'👤 Personal',otro:'📦 Otro'};
 const RG_T={cli:['⬇ Pago de un cliente','entrada',''],pla:['🎬 Pago de plataforma (lo que pagás vos)','salida','plataforma'],per:['👤 Gasto personal','salida','personal'],otr:['📦 Otro gasto','salida','otro']};
 function regOpen(){const hoy=new Date(T.getTime()),iso=hoy.getFullYear()+'-'+p2(hoy.getMonth()+1)+'-'+p2(hoy.getDate());
@@ -301,7 +336,7 @@ return `<div class="row"><div class="info"><b>${esc(p.n)}</b><span>${p.t} · ${e
 const V={
 ven(){const c=cnt(),free=S.accts.reduce((s,a)=>s+a.cap-a.used,0),cl=S.accts.filter(a=>!a.used).length;
 return `<h1>Vencimientos</h1><p class="sub">${act().length} clientes activos</p>${S.avisos&&S.avisos.length?`<button class="chip" data-a="avisos" style="width:100%;margin:0 0 10px;color:var(--warn)">🔔 ${S.avisos.length} mensaje(s) del bot para revisar · tocá para ver</button>`:''}${S.cerr&&S.cerr.length?`<button class="chip" data-a="cerr" style="width:100%;margin:0 0 10px;color:var(--bad)">⚠ ${S.cerr.length} cambio(s) no se pasaron al Sheet · tocá para ver</button>`:''}<div class="stats">${st(c.h,'Vencen hoy','var(--warn)')}${st(c.v,'Vencidos','var(--bad)')}${st(free,'Disponibles','var(--ok)')}${st(cl,'Cuentas por cerrar','var(--mu)')}</div><input id="q" placeholder="Buscar por nombre, teléfono o servicio" value="${esc(q)}"><div class="chips">${[['v','Vencidos'],['h','Hoy'],['a','1 a 3 días'],['b','4 a 7 días']].map(([k,l])=>`<button class="chip ${f==k?'on':''}" data-a="f" data-k="${k}">${l}<b>${c[k]}</b></button>`).join('')}</div><div id="lst">${L.ven()}</div>`},
-cli(){return `<h1>Clientes</h1><p class="sub">${S.clients.length} en la base</p><input id="q" placeholder="Nombre, teléfono o servicio" value="${esc(q)}"><div class="chips">${[['on','Activos'],['all','Todos'],['off','De baja']].map(([k,l])=>`<button class="chip ${cf==k?'on':''}" data-a="cf" data-k="${k}">${l}</button>`).join('')}<button class="chip" data-a="blq">🚫 Bloqueados del bot</button></div>${cf=='off'&&S.clients.some(c=>!c.on)?`<button class="chip" data-a="delbaja" style="width:100%;margin:0 0 10px;padding:10px;color:var(--bad)">🗑 Borrar todos los de baja (${S.clients.filter(c=>!c.on).length})</button>`:''}<div id="lst">${L.cli()}</div>`},
+cli(){return `<h1>Clientes</h1><p class="sub">${S.clients.length} en la base</p><input id="q" placeholder="Nombre, teléfono o servicio" value="${esc(q)}"><div class="chips">${[['on','Activos'],['all','Todos'],['off','De baja']].map(([k,l])=>`<button class="chip ${cf==k?'on':''}" data-a="cf" data-k="${k}">${l}</button>`).join('')}<button class="chip" data-a="blq">🚫 Bloqueados del bot</button>${S.cup?`<button class="chip" data-a="sorteo">🎟 Sorteo (${S.cup.filter(x=>!x.anulado).length})</button>`:''}</div>${cf=='off'&&S.clients.some(c=>!c.on)?`<button class="chip" data-a="delbaja" style="width:100%;margin:0 0 10px;padding:10px;color:var(--bad)">🗑 Borrar todos los de baja (${S.clients.filter(c=>!c.on).length})</button>`:''}<div id="lst">${L.cli()}</div>`},
 pag(){const ps=pagosF(),sum=l=>l.reduce((s,p)=>s+p.amt,0),ent=ps.filter(p=>!p.out),sal=ps.filter(p=>p.out),un=ent.filter(p=>!p.used&&!p.arch).length,n=v=>v.toLocaleString('es-PY');
 const stats=pt=='in'?st(n(sum(ent)),'Total','var(--tx)')+st(ent.length,'Transferencias','var(--tx)')+st(un,'Sin usar','var(--warn)')
  :pt=='out'?st(n(sum(sal)),'Total salidas','var(--bad)')+st(n(sum(sal.filter(p=>p.cat=='plataforma'))),'Plataformas','var(--tx)')+st(sal.length,'Pagos','var(--tx)')
@@ -330,6 +365,8 @@ else if(a=='blqsave')blqSave();
 else if(a=='arch'||a=='unarch'){const p=S.pays.find(x=>x.id==id);if(p){p.arch=a=='arch';sb.from('pagos').update({archivado:p.arch}).eq('id',p.id).then(dbErr);render();toast(p.arch?'Marcado como registrado (no se cambió ninguna fecha)':'Listo, vuelve a estar sin usar')}}
 else if(a=='pf'){pf=b.dataset.k;render()}
 else if(a=='pt'){pt=b.dataset.k;render()}
+else if(a=='sorteo'){sq='';sortOpen()}else if(a=='sortear')sortear();else if(a=='cupadd')cupAddOpen();else if(a=='cupsave')cupSave();else if(a=='sortreset'){ganadores=[];sortOpen()}
+else if(a=='cupx'){const x=(S.cup||[]).find(y=>y.id==b.dataset.id);if(x&&confirm(`${x.anulado?'¿Volver a activar':'¿Anular'} el cupón #${x.numero} de ${x.nombre} (${x.servicio})?`)){x.anulado=!x.anulado;sb.from('cupones').update({anulado:x.anulado}).eq('id',x.id).then(dbErr);sortOpen()}}
 else if(a=='preg')regOpen();else if(a=='regsave')regSave();else if(a=='pcat')catOpen(b.dataset.id);
 else if(a=='pcatset'){const p=S.pays.find(x=>x.id==b.dataset.id);if(p){p.cat=b.dataset.k;sb.from('pagos').update({categoria:p.cat}).eq('id',p.id).then(dbErr);$('#sheet').hidden=true;render()}}
 else if(a=='pdel'){const p=S.pays.find(x=>x.id==b.dataset.id);if(p&&confirm('¿Borrar este pago cargado a mano?')){sb.from('pagos').delete().eq('id',p.id).then(dbErr);S.pays=S.pays.filter(x=>x!==p);render();toast('Pago borrado')}}
@@ -361,6 +398,7 @@ else if(a=='logout'){if(bioId()){S.clients=[];S.accts=[];$('#lock').hidden=false
 function fillAcc(b){const sel=b.querySelector('.sv-c'),sv=b.querySelector('.sv-s').value.trim().toLowerCase();if(!sel)return;
 sel.innerHTML='<option value="">Sin cuenta por ahora</option>'+S.accts.filter(a=>String(a.svc).toLowerCase()==sv&&a.cap-a.used>0).map(a=>`<option value="${a.id}">${esc(a.m)} · ${a.cap-a.used} libre${a.cap-a.used>1?'s':''}</option>`).join('')}
 document.addEventListener('input',e=>{if(e.target.id=='q'){q=e.target.value;$('#lst').innerHTML=L[tab]()}else if(e.target.id=='pq')$('#pl').innerHTML=pickList(pickPid,e.target.value);else if(e.target.classList&&e.target.classList.contains('sv-s'))fillAcc(e.target.closest('.svb'))});
+document.addEventListener('input',e=>{if(e.target.id=='sq'){sq=e.target.value;const pos=e.target.selectionStart;sortOpen();const n=$('#sq');n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}});
 document.addEventListener('change',e=>{if(e.target.id=='rg_t'){regTipo();return}if(e.target.id=='rg_b')e.target.dataset.t='1';if(e.target.classList&&e.target.classList.contains('sv-s')){const b=e.target.closest('.svb');if(PRE[e.target.value])b.querySelector('.sv-p').value=PRE[e.target.value];fillAcc(b)}});
 document.addEventListener('change',e=>{if(e.target.id=='as'){const o=$('#as2');o.hidden=e.target.value!='__otro';if(!o.hidden)o.focus()}
 if(e.target.dataset.a=='pick'&&e.target.value)use(e.target.dataset.id,e.target.value)});
