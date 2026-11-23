@@ -98,7 +98,7 @@ let S={clients:[],pays:[],accts:[]};
 const save=()=>{};
 const isoD=t=>{const d=new Date(t);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
 const dbErr=r=>{if(r&&r.error)toast('Error: '+r.error.message)};
-const APP_VER='202611201118';   // al subir una versión nueva, la app abierta en el celular se recarga sola
+const APP_VER='202611231808';   // al subir una versión nueva, la app abierta en el celular se recarga sola
 async function verNueva(){try{const r=await fetch(location.pathname+'?chk='+Date.now(),{cache:'no-store'});const t=await r.text();const m=t.match(/APP_VER='(\d+)'/);if(m&&m[1]!==APP_VER)location.replace(location.pathname+'?v='+m[1])}catch(e){}}
 verNueva();document.addEventListener('visibilitychange',()=>{if(!document.hidden)verNueva()});
 const enq=(tipo,datos)=>sb.from('cambios').insert({tipo,datos}).then(r=>{if(r.error)toast('No se pudo anotar el cambio para el Sheet: '+r.error.message)});
@@ -161,7 +161,14 @@ $('#sheet').innerHTML=`<div class="pane"><h1 style="font-size:22px">${a.id?'Cuen
 <label for="au">Perfiles ocupados</label><input id="au" type="number" inputmode="numeric" value="${a.used}">
 <label for="an">Nota (PIN, proveedor, etc.)</label><input id="an" value="${esc(nt)}" autocomplete="off">${a.id?usersOf(a):''}
 <button class="big" style="margin-top:12px" data-a="asave" data-id="${a.id}">Guardar cambios</button>
+${a.id?`<button class="chip" style="width:100%;padding:11px;margin-bottom:8px;color:var(--bad)" data-a="adel" data-id="${a.id}">🗑 Eliminar cuenta</button>`:''}
 <button class="chip" style="width:100%;padding:11px" data-a="eclose">Cerrar</button></div>`;$('#sheet').hidden=false}
+async function adel(id){const a=S.accts.find(x=>x.id==id);if(!a)return;const us=usosCuenta(a);
+if(us.length){alert(`No se puede eliminar: ${us.length==1?'la usa':'la usan'} ${us.map(c=>c.n.trim()).join(', ')}.\nPasá ${us.length==1?'ese cliente':'esos clientes'} a otra cuenta o dalos de baja primero.`);return}
+if(!confirm(`¿Eliminar la cuenta ${a.m} (${a.svc})?\nSe borra de la app y se vacían su correo y contraseña en la planilla. No se puede deshacer.`))return;
+const r=await sb.from('cuentas').delete().eq('id',a.id);if(r.error){toast('No se pudo eliminar: '+r.error.message);return}
+enq('borrarcuenta',{servicio:a.svc,correo:a.m});S.accts=S.accts.filter(x=>x!==a);$('#sheet').hidden=true;render();toast('Cuenta eliminada')}
+const usosCuenta=a=>S.clients.filter(c=>c.on&&c.mail&&c.mail==String(a.m).trim().toLowerCase()&&c.svc==a.svc);
 async function asave(id){const v=i=>$('#'+i).value.trim();const svc=v('as')=='__otro'?v('as2'):v('as');if(!v('ac')||!svc){toast('Completa correo y servicio');return}
 const f={correo:v('ac'),servicio:svc,capacidad:+v('ap')||0,ocupados:+v('au')||0};
 let cid=+id;if(cid){const r=await sb.from('cuentas').update(f).eq('id',cid);if(r.error){toast('Error: '+r.error.message);return}}
@@ -235,17 +242,19 @@ ${ganadores.map((g,i)=>`<div style="border:2px solid var(--ac);border-radius:14p
 <button class="big" data-a="sortear" ${v.length?'':'disabled'}>🎲 ${ganadores.length?'Sortear otro ganador':'Sortear ganador'}</button>${ganadores.length?`<button class="chip" style="width:100%;padding:10px;margin-top:6px" data-a="sortreset">Borrar ganadores de la pantalla</button>`:''}
 <button class="chip" style="width:100%;padding:11px;margin-top:8px" data-a="cupadd">➕ Agregar cupón a mano</button>
 <input id="sq" placeholder="Buscar cliente o número de cupón" value="${esc(sq)}" style="margin-top:12px" autocomplete="off">
-<div>${gs2.map(g=>{const a=g.l.filter(x=>!x.anulado).length;return `<div class="row" style="display:block"><div><b>${esc(g.n)}</b> <span class="sub">· ${a} ${a==1?'cupón':'cupones'}</span></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${g.l.map(x=>`<button class="chip" data-a="cupx" data-id="${x.id}" title="${esc((x.servicio||'')+' · '+(x.motivo||'')+' · '+new Date(x.creado).toLocaleDateString('es-PY'))}" style="${x.anulado?'text-decoration:line-through;opacity:.5':''}">#${x.numero} ${esc(x.servicio||'')}</button>`).join('')}</div></div>`}).join('')||'<div class="empty"><b>Todavía no hay cupones</b>Se crean solos cada vez que un cliente renueva o compra un servicio.</div>'}</div>
+<div>${gs2.map(g=>{const a=g.l.filter(x=>!x.anulado).length;return `<div class="row" style="display:block"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1"><b>${esc(g.n)}</b> <span class="sub">· ${a} ${a==1?'cupón':'cupones'}</span></div><button class="chip" data-a="cupmas" data-k="${esc(g.k)}" aria-label="Agregar cupones a ${esc(g.n)}" style="white-space:nowrap">➕ Cupón</button></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${g.l.map(x=>`<button class="chip" data-a="cupx" data-id="${x.id}" title="${esc((x.servicio||'')+' · '+(x.motivo||'')+' · '+new Date(x.creado).toLocaleDateString('es-PY'))}" style="${x.anulado?'text-decoration:line-through;opacity:.5':''}">#${x.numero} ${esc(x.servicio||'')}</button>`).join('')}</div></div>`}).join('')||'<div class="empty"><b>Todavía no hay cupones</b>Se crean solos cada vez que un cliente renueva o compra un servicio.</div>'}</div>
 <p class="sub" style="font-size:12px">Tocá un cupón para anularlo (o volver a activarlo).</p>
 <button class="chip" style="width:100%;padding:11px" data-a="eclose">Cerrar</button></div>`;$('#sheet').hidden=false}
-function cupAddOpen(){const vis=new Set(),ops=[];
+function cupAddOpen(k){const vis=new Set(),ops=[];
 S.clients.slice().sort((a,b)=>(b.on-a.on)||String(a.ct||a.n).localeCompare(String(b.ct||b.n))).forEach(c=>{const t=String(c.tel||'').replace(/\D/g,'').slice(-8),k=t||c.n;if(vis.has(k))return;vis.add(k);ops.push(`${String(c.ct||c.n).trim()} — ${c.tel||'sin número'}`)});
 $('#sheet').innerHTML=`<div class="pane"><h1 style="font-size:20px">➕ Agregar cupón a mano</h1><p class="sub">Para ventas que no pasan por la app (productos, combos, etc.).</p>
 <label for="ca_n">Cliente</label><input id="ca_n" list="ca_l" placeholder="Escribí el nombre y elegí de la lista" autocomplete="off"><datalist id="ca_l">${ops.map(o=>`<option value="${esc(o)}">`).join('')}</datalist>
 <label for="ca_t">Teléfono (si no está en la lista)</label><input id="ca_t" inputmode="tel" placeholder="0981 123 456" autocomplete="off">
 <label for="ca_p">¿Qué compró?</label><input id="ca_p" placeholder="Ej: Combo Netflix + Disney, recarga, producto…" autocomplete="off">
 <label for="ca_c">Cantidad de cupones</label><input id="ca_c" type="number" min="1" max="20" value="1">
-<button class="big" style="margin-top:12px" data-a="cupsave">Agregar</button><button class="chip" style="width:100%;padding:11px" data-a="sorteo">Volver</button></div>`;$('#sheet').hidden=false}
+<button class="big" style="margin-top:12px" data-a="cupsave">Agregar</button><button class="chip" style="width:100%;padding:11px" data-a="sorteo">Volver</button></div>`;$('#sheet').hidden=false;
+if(k){const l=(S.cup||[]).filter(x=>quienCup(x)==k),x=l[l.length-1];if(x){const c=x.cliente_id&&S.clients.find(y=>y.id==x.cliente_id);
+$('#ca_n').value=c?`${String(c.ct||c.n).trim()} — ${c.tel||'sin número'}`:(x.nombre||'');if(!c)$('#ca_t').value=x.telefono||'';$('#ca_p').value=x.servicio||'';$('#ca_p').focus();$('#ca_p').select()}}}
 async function cupSave(){const v=$('#ca_n').value.trim(),prod=$('#ca_p').value.trim(),n=Math.min(20,Math.max(1,parseInt($('#ca_c').value)||1));
 if(!v){toast('Poné el nombre del cliente');return}if(!prod){toast('Poné qué compró');return}
 const m=v.match(/^(.*) — (.*)$/);let nombre=v,tel=$('#ca_t').value.trim(),cid=null;
@@ -291,9 +300,9 @@ else msg='Lista actualizada (el correo se lee solo cada minuto)';
 await pull();loading=false;render();toast(msg)}
 function add(){const n=$('#fn').value.trim(),t=$('#ft').value.trim();if(!n||!t){toast('Completa nombre y WhatsApp');return}
 if([...document.querySelectorAll('.sv-s')].some(x=>!x.value)){toast('Elegí el servicio');return}
-const rows=[...document.querySelectorAll('.svb')].map(b=>{const sel=b.querySelector('.sv-c'),ac=sel&&sel.value?S.accts.find(x=>x.id==sel.value):null;return{s:b.querySelector('.sv-s').value.trim()||'Sin servicio',p:+b.querySelector('.sv-p').value||0,d:+b.querySelector('.sv-d').value||30,n:b.querySelector('.sv-n').value.trim(),m:ac?String(ac.m).trim().toLowerCase():'',cl:ac?(S.cred[ac.id]||''):''}});
-sb.from('clientes').insert(rows.map(x=>({nombre:n,telefono:t,servicio:x.s,precio:x.p,vence:isoD(ts(x.d)),nota:x.n||null,correo:x.m||null,activo:true}))).select('id').then(r=>{if(r.error){dbErr(r);return}
-(r.data||[]).forEach((row,i)=>enq('nuevo',{cliente_id:row.id,servicio:rows[i].s,nombre:n,telefono:t,precio:rows[i].p,vence:isoD(ts(rows[i].d)),correo:rows[i].m,clave:rows[i].cl}));tab='cli';cf='on';q='';toast(rows.length>1?rows.length+' servicios guardados':'Cliente guardado');pull()})}
+const rows=[...document.querySelectorAll('.svb')].map(b=>{const sel=b.querySelector('.sv-c'),ac=sel&&sel.value?S.accts.find(x=>x.id==sel.value):null;return{s:b.querySelector('.sv-s').value.trim()||'Sin servicio',p:+b.querySelector('.sv-p').value||0,d:+b.querySelector('.sv-d').value||30,n:b.querySelector('.sv-n').value.trim(),u:(b.querySelector('.sv-u')||{value:''}).value.trim(),pin:(b.querySelector('.sv-pin')||{value:''}).value.trim(),m:ac?String(ac.m).trim().toLowerCase():'',cl:ac?(S.cred[ac.id]||''):''}});
+sb.from('clientes').insert(rows.map(x=>({nombre:n,telefono:t,servicio:x.s,precio:x.p,vence:isoD(ts(x.d)),nota:x.n||null,correo:x.m||null,perfil:x.u||null,pin:x.pin||null,activo:true}))).select('id').then(r=>{if(r.error){dbErr(r);return}
+(r.data||[]).forEach((row,i)=>enq('nuevo',{cliente_id:row.id,servicio:rows[i].s,nombre:n,telefono:t,precio:rows[i].p,vence:isoD(ts(rows[i].d)),correo:rows[i].m,clave:rows[i].cl,perfil:rows[i].u,pin:rows[i].pin}));tab='cli';cf='on';q='';toast(rows.length>1?rows.length+' servicios guardados':'Cliente guardado');pull()})}
 const LOGOS=[['netflix','N','#e50914'],['max','max','#002be7'],['hbo','max','#002be7'],['prime','prime','#00a8e1'],['disney','D+','#113ccf'],['paramount','P','#0064ff'],['youtube','▶','#ff0000'],['google','G','#4285f4'],['spotify','S','#1db954'],['crunchy','C','#f47521'],['magis','M','#f26b21'],['tigo','T','#00377b']];
 function logo(n){const l=String(n).toLowerCase(),m=LOGOS.find(x=>l.includes(x[0]));if(!m)return `<span class="lg" style="background:var(--mu)">${esc(String(n).slice(0,1).toUpperCase())}</span>`;return `<span class="lg" style="background:${m[2]}">${m[1]}<img src="icons/svc/${m[0]}.png" alt="" onerror="this.remove()"></span>`}
 const B64=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -305,7 +314,7 @@ function bioOff(){try{localStorage.removeItem('bio')}catch(e){}toast('Huella des
 async function unlock(){const id=bioId();if(!id){$('#lock').hidden=true;pull();return}
 try{await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{type:'public-key',id:UB(id)}],userVerification:'required',timeout:60000}});$('#lock').hidden=true;pull()}catch(e){toast('No se pudo verificar la huella')}}
 let hiddenAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden){hiddenAt=Date.now()}else if(bioId()&&hiddenAt&&Date.now()-hiddenAt>60000&&$('#login').hidden){$('#lock').hidden=false;unlock()}});
-const blk=first=>`<div class="svb" style="border:1px solid var(--line);border-radius:14px;padding:4px 12px 12px;margin:10px 0 4px"><label>Servicio</label><select class="sv-s" aria-label="Servicio"><option value="">— Elegí el servicio —</option>${svOpts('')}</select><label>Precio (Gs.)</label><input class="sv-p" aria-label="Precio" type="number" inputmode="numeric" value="30000"><label>Vence en (días)</label><input class="sv-d" aria-label="Vence en días" type="number" inputmode="numeric" value="30"><label>Cuenta (opcional)</label><select class="sv-c" aria-label="Cuenta"><option value="">Sin cuenta por ahora</option></select><label>Nota (opcional)</label><input class="sv-n" aria-label="Nota" placeholder="Ej: en qué cuenta de Netflix está" autocomplete="off">${first?'':'<button class="chip" data-a="rmsv" style="margin-top:8px;color:var(--bad)">Quitar este servicio</button>'}</div>`;
+const blk=first=>`<div class="svb" style="border:1px solid var(--line);border-radius:14px;padding:4px 12px 12px;margin:10px 0 4px"><label>Servicio</label><select class="sv-s" aria-label="Servicio"><option value="">— Elegí el servicio —</option>${svOpts('')}</select><label>Precio (Gs.)</label><input class="sv-p" aria-label="Precio" type="number" inputmode="numeric" value="30000"><label>Vence en (días)</label><input class="sv-d" aria-label="Vence en días" type="number" inputmode="numeric" value="30"><label>Cuenta (opcional)</label><select class="sv-c" aria-label="Cuenta"><option value="">Sin cuenta por ahora</option></select><div style="display:flex;gap:8px"><div style="flex:2"><label>Usuario / perfil (opcional)</label><input class="sv-u" aria-label="Usuario o perfil" placeholder="Ej: Perfil 3" autocomplete="off"></div><div style="flex:1"><label>PIN (opcional)</label><input class="sv-pin" aria-label="PIN" inputmode="numeric" placeholder="1234" autocomplete="off"></div></div><label>Nota (opcional)</label><input class="sv-n" aria-label="Nota" placeholder="Ej: en qué cuenta de Netflix está" autocomplete="off">${first?'':'<button class="chip" data-a="rmsv" style="margin-top:8px;color:var(--bad)">Quitar este servicio</button>'}</div>`;
 const MESES_ES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const msgD=(c,clave)=>{const d=new Date(c.due);return `*_✅ ${svcName(c.svc)}_*\n\n*📧 Correo:* ${c.mail||''}\n*🔑 Contraseña:* ${clave||''}\n\n*☑️ Perfil:* ${c.perfil||''}\n*Pin:* ${c.pin||''}\n*📍 Vence:* ${d.getDate()} ${MESES_ES[d.getMonth()]}`};
 const acctOf=c=>c.mail?S.accts.find(x=>String(x.m).trim().toLowerCase()==c.mail&&x.svc==c.svc):null;
@@ -365,7 +374,7 @@ else if(a=='blqsave')blqSave();
 else if(a=='arch'||a=='unarch'){const p=S.pays.find(x=>x.id==id);if(p){p.arch=a=='arch';sb.from('pagos').update({archivado:p.arch}).eq('id',p.id).then(dbErr);render();toast(p.arch?'Marcado como registrado (no se cambió ninguna fecha)':'Listo, vuelve a estar sin usar')}}
 else if(a=='pf'){pf=b.dataset.k;render()}
 else if(a=='pt'){pt=b.dataset.k;render()}
-else if(a=='sorteo'){sq='';sortOpen()}else if(a=='sortear')sortear();else if(a=='cupadd')cupAddOpen();else if(a=='cupsave')cupSave();else if(a=='sortreset'){ganadores=[];sortOpen()}
+else if(a=='sorteo'){sq='';sortOpen()}else if(a=='sortear')sortear();else if(a=='cupadd')cupAddOpen();else if(a=='cupmas')cupAddOpen(b.dataset.k);else if(a=='cupsave')cupSave();else if(a=='sortreset'){ganadores=[];sortOpen()}
 else if(a=='cupx'){const x=(S.cup||[]).find(y=>y.id==b.dataset.id);if(x&&confirm(`${x.anulado?'¿Volver a activar':'¿Anular'} el cupón #${x.numero} de ${x.nombre} (${x.servicio})?`)){x.anulado=!x.anulado;sb.from('cupones').update({anulado:x.anulado}).eq('id',x.id).then(dbErr);sortOpen()}}
 else if(a=='preg')regOpen();else if(a=='regsave')regSave();else if(a=='pcat')catOpen(b.dataset.id);
 else if(a=='pcatset'){const p=S.pays.find(x=>x.id==b.dataset.id);if(p){p.cat=b.dataset.k;sb.from('pagos').update({categoria:p.cat}).eq('id',p.id).then(dbErr);$('#sheet').hidden=true;render()}}
@@ -381,7 +390,7 @@ else if(a=='kall'){const ac=S.accts.find(x=>x.id==id);if(!ac)return;const us=S.c
 const clave=($('#ak')&&$('#ak').value)||'';if(!clave){toast('Esta cuenta no tiene clave guardada');return}
 if(!us.length)return;if(kAcc!=id){kAcc=id;kIdx=0}const c=us[kIdx%us.length];window.open(wl(c,msgK(c,clave)),'_blank');kIdx++;
 b.textContent=kIdx%us.length==0?`✅ Listo, se avisó a los ${us.length}. Tocar para repetir`:`🔐 Avisar al siguiente: ${us[kIdx%us.length].n.split(' ')[0]} (${kIdx+1} de ${us.length})`}
-else if(a=='asave')asave(id);
+else if(a=='asave')asave(id);else if(a=='adel')adel(id);
 else if(a=='copy')copyF(b.dataset.t);
 else if(a=='show'){const i=$('#ak');i.type=i.type=='password'?'text':'password';b.textContent=i.type=='password'?'Ver':'Ocultar'}
 else if(a=='theme'){const r=document.documentElement,d=r.dataset.theme||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');r.dataset.theme=d=='dark'?'light':'dark'}
