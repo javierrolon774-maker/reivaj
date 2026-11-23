@@ -98,7 +98,7 @@ let S={clients:[],pays:[],accts:[]};
 const save=()=>{};
 const isoD=t=>{const d=new Date(t);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
 const dbErr=r=>{if(r&&r.error)toast('Error: '+r.error.message)};
-const APP_VER='202611202348';   // al subir una versión nueva, la app abierta en el celular se recarga sola
+const APP_VER='202611201118';   // al subir una versión nueva, la app abierta en el celular se recarga sola
 async function verNueva(){try{const r=await fetch(location.pathname+'?chk='+Date.now(),{cache:'no-store'});const t=await r.text();const m=t.match(/APP_VER='(\d+)'/);if(m&&m[1]!==APP_VER)location.replace(location.pathname+'?v='+m[1])}catch(e){}}
 verNueva();document.addEventListener('visibilitychange',()=>{if(!document.hidden)verNueva()});
 const enq=(tipo,datos)=>sb.from('cambios').insert({tipo,datos}).then(r=>{if(r.error)toast('No se pudo anotar el cambio para el Sheet: '+r.error.message)});
@@ -235,19 +235,17 @@ ${ganadores.map((g,i)=>`<div style="border:2px solid var(--ac);border-radius:14p
 <button class="big" data-a="sortear" ${v.length?'':'disabled'}>🎲 ${ganadores.length?'Sortear otro ganador':'Sortear ganador'}</button>${ganadores.length?`<button class="chip" style="width:100%;padding:10px;margin-top:6px" data-a="sortreset">Borrar ganadores de la pantalla</button>`:''}
 <button class="chip" style="width:100%;padding:11px;margin-top:8px" data-a="cupadd">➕ Agregar cupón a mano</button>
 <input id="sq" placeholder="Buscar cliente o número de cupón" value="${esc(sq)}" style="margin-top:12px" autocomplete="off">
-<div>${gs2.map(g=>{const a=g.l.filter(x=>!x.anulado).length;return `<div class="row" style="display:block"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1"><b>${esc(g.n)}</b> <span class="sub">· ${a} ${a==1?'cupón':'cupones'}</span></div><button class="chip" data-a="cupmas" data-k="${esc(g.k)}" aria-label="Agregar cupones a ${esc(g.n)}" style="white-space:nowrap">➕ Cupón</button></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${g.l.map(x=>`<button class="chip" data-a="cupx" data-id="${x.id}" title="${esc((x.servicio||'')+' · '+(x.motivo||'')+' · '+new Date(x.creado).toLocaleDateString('es-PY'))}" style="${x.anulado?'text-decoration:line-through;opacity:.5':''}">#${x.numero} ${esc(x.servicio||'')}</button>`).join('')}</div></div>`}).join('')||'<div class="empty"><b>Todavía no hay cupones</b>Se crean solos cada vez que un cliente renueva o compra un servicio.</div>'}</div>
+<div>${gs2.map(g=>{const a=g.l.filter(x=>!x.anulado).length;return `<div class="row" style="display:block"><div><b>${esc(g.n)}</b> <span class="sub">· ${a} ${a==1?'cupón':'cupones'}</span></div><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">${g.l.map(x=>`<button class="chip" data-a="cupx" data-id="${x.id}" title="${esc((x.servicio||'')+' · '+(x.motivo||'')+' · '+new Date(x.creado).toLocaleDateString('es-PY'))}" style="${x.anulado?'text-decoration:line-through;opacity:.5':''}">#${x.numero} ${esc(x.servicio||'')}</button>`).join('')}</div></div>`}).join('')||'<div class="empty"><b>Todavía no hay cupones</b>Se crean solos cada vez que un cliente renueva o compra un servicio.</div>'}</div>
 <p class="sub" style="font-size:12px">Tocá un cupón para anularlo (o volver a activarlo).</p>
 <button class="chip" style="width:100%;padding:11px" data-a="eclose">Cerrar</button></div>`;$('#sheet').hidden=false}
-function cupAddOpen(k){const vis=new Set(),ops=[];
+function cupAddOpen(){const vis=new Set(),ops=[];
 S.clients.slice().sort((a,b)=>(b.on-a.on)||String(a.ct||a.n).localeCompare(String(b.ct||b.n))).forEach(c=>{const t=String(c.tel||'').replace(/\D/g,'').slice(-8),k=t||c.n;if(vis.has(k))return;vis.add(k);ops.push(`${String(c.ct||c.n).trim()} — ${c.tel||'sin número'}`)});
 $('#sheet').innerHTML=`<div class="pane"><h1 style="font-size:20px">➕ Agregar cupón a mano</h1><p class="sub">Para ventas que no pasan por la app (productos, combos, etc.).</p>
 <label for="ca_n">Cliente</label><input id="ca_n" list="ca_l" placeholder="Escribí el nombre y elegí de la lista" autocomplete="off"><datalist id="ca_l">${ops.map(o=>`<option value="${esc(o)}">`).join('')}</datalist>
 <label for="ca_t">Teléfono (si no está en la lista)</label><input id="ca_t" inputmode="tel" placeholder="0981 123 456" autocomplete="off">
 <label for="ca_p">¿Qué compró?</label><input id="ca_p" placeholder="Ej: Combo Netflix + Disney, recarga, producto…" autocomplete="off">
 <label for="ca_c">Cantidad de cupones</label><input id="ca_c" type="number" min="1" max="20" value="1">
-<button class="big" style="margin-top:12px" data-a="cupsave">Agregar</button><button class="chip" style="width:100%;padding:11px" data-a="sorteo">Volver</button></div>`;$('#sheet').hidden=false;
-if(k){const l=(S.cup||[]).filter(x=>quienCup(x)==k),x=l[l.length-1];if(x){const c=x.cliente_id&&S.clients.find(y=>y.id==x.cliente_id);
-$('#ca_n').value=c?`${String(c.ct||c.n).trim()} — ${c.tel||'sin número'}`:(x.nombre||'');if(!c)$('#ca_t').value=x.telefono||'';$('#ca_p').value=x.servicio||'';$('#ca_p').focus();$('#ca_p').select()}}}
+<button class="big" style="margin-top:12px" data-a="cupsave">Agregar</button><button class="chip" style="width:100%;padding:11px" data-a="sorteo">Volver</button></div>`;$('#sheet').hidden=false}
 async function cupSave(){const v=$('#ca_n').value.trim(),prod=$('#ca_p').value.trim(),n=Math.min(20,Math.max(1,parseInt($('#ca_c').value)||1));
 if(!v){toast('Poné el nombre del cliente');return}if(!prod){toast('Poné qué compró');return}
 const m=v.match(/^(.*) — (.*)$/);let nombre=v,tel=$('#ca_t').value.trim(),cid=null;
@@ -367,7 +365,7 @@ else if(a=='blqsave')blqSave();
 else if(a=='arch'||a=='unarch'){const p=S.pays.find(x=>x.id==id);if(p){p.arch=a=='arch';sb.from('pagos').update({archivado:p.arch}).eq('id',p.id).then(dbErr);render();toast(p.arch?'Marcado como registrado (no se cambió ninguna fecha)':'Listo, vuelve a estar sin usar')}}
 else if(a=='pf'){pf=b.dataset.k;render()}
 else if(a=='pt'){pt=b.dataset.k;render()}
-else if(a=='sorteo'){sq='';sortOpen()}else if(a=='sortear')sortear();else if(a=='cupadd')cupAddOpen();else if(a=='cupmas')cupAddOpen(b.dataset.k);else if(a=='cupsave')cupSave();else if(a=='sortreset'){ganadores=[];sortOpen()}
+else if(a=='sorteo'){sq='';sortOpen()}else if(a=='sortear')sortear();else if(a=='cupadd')cupAddOpen();else if(a=='cupsave')cupSave();else if(a=='sortreset'){ganadores=[];sortOpen()}
 else if(a=='cupx'){const x=(S.cup||[]).find(y=>y.id==b.dataset.id);if(x&&confirm(`${x.anulado?'¿Volver a activar':'¿Anular'} el cupón #${x.numero} de ${x.nombre} (${x.servicio})?`)){x.anulado=!x.anulado;sb.from('cupones').update({anulado:x.anulado}).eq('id',x.id).then(dbErr);sortOpen()}}
 else if(a=='preg')regOpen();else if(a=='regsave')regSave();else if(a=='pcat')catOpen(b.dataset.id);
 else if(a=='pcatset'){const p=S.pays.find(x=>x.id==b.dataset.id);if(p){p.cat=b.dataset.k;sb.from('pagos').update({categoria:p.cat}).eq('id',p.id).then(dbErr);$('#sheet').hidden=true;render()}}
